@@ -11,7 +11,19 @@ export const platformer: GameHeadless = {
   title: "seed",
   summary: "five rooms. deaths are the score.",
   rootBranchId: branch.id,
-  contextChips: ["slow the fast dots", "add a safe zone", "widen this gap"],
+  theme: {
+    background: "linear-gradient(180deg, #b4b5fe 0%, #d9d4ff 100%)",
+    foreground: "#1a1a2e",
+    vignette: "radial-gradient(ellipse at center, transparent 42%, rgba(26, 26, 46, 0.28) 100%)",
+  },
+  ask: {
+    visible: true,
+    focus: false,
+    pulse: false,
+    placeholder: "what should change?",
+    maxLength: 140,
+    chips: ["slow the fast dots", "add a safe zone", "widen this gap"],
+  },
   seed: {
     branches: [branch],
   },

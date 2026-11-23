@@ -26,6 +26,34 @@ export function resetScale(): void {
   scaleStep = 0
 }
 
+export function playBlip(options: {
+  frequency: number
+  type?: OscillatorType
+  gain?: number
+  duration?: number
+  slideTo?: number
+}): void {
+  const ctx = audio()
+  if (!ctx || ctx.state !== "running") return
+  const t = ctx.currentTime
+  const oscillator = ctx.createOscillator()
+  const amp = ctx.createGain()
+  oscillator.type = options.type ?? "sine"
+  oscillator.frequency.setValueAtTime(options.frequency, t)
+  if (options.slideTo) {
+    oscillator.frequency.exponentialRampToValueAtTime(Math.max(1, options.slideTo), t + (options.duration ?? 0.12))
+  }
+  const peak = options.gain ?? 0.12
+  const duration = options.duration ?? 0.12
+  amp.gain.setValueAtTime(0.0001, t)
+  amp.gain.exponentialRampToValueAtTime(peak, t + 0.008)
+  amp.gain.exponentialRampToValueAtTime(0.0001, t + duration)
+  oscillator.connect(amp)
+  amp.connect(ctx.destination)
+  oscillator.start(t)
+  oscillator.stop(t + duration + 0.02)
+}
+
 function tone(
   ctx: AudioContext,
   frequency: number,

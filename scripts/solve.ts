@@ -15,7 +15,7 @@ for (const game of catalog) {
   for (const result of results) {
     const mark = result.ok ? "ok" : "fail"
     const extra = result.notes.length ? `  ${result.notes.join("  ")}` : ""
-    console.log(`${game.id}  ${result.levelId}  ${mark}  path ${result.pathLength}px${extra}`)
+    console.log(`${game.id}  ${result.levelId}  ${mark}${extra}`)
     if (!result.ok) failed = true
   }
   const passed = results.filter((result) => result.ok).length

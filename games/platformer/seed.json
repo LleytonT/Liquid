@@ -9,11 +9,11 @@
       "version": 1,
       "lockedCore": {
         "colors": {
-          "player": "#E23B3B",
-          "enemy": "#3A5BFF",
+          "player": "#FF2E2E",
+          "enemy": "#2E3BFF",
           "coin": "#FFE14D",
-          "safe": "#3DDC97",
-          "end": "#8FF0C0"
+          "safe": "#B5FEB4",
+          "end": "#B5FEB4"
         },
         "rules": [
           "every level is finishable",
@@ -85,15 +85,15 @@
         "locked": false
       },
       "enemyVisualRadiusPx": {
-        "value": 11,
-        "min": 8,
+        "value": 8,
+        "min": 6,
         "max": 16,
         "locked": false
       },
       "coinRadiusPx": {
-        "value": 7,
-        "min": 5,
-        "max": 12,
+        "value": 12,
+        "min": 8,
+        "max": 16,
         "locked": false
       }
     },
@@ -125,8 +125,8 @@
           ],
           "enemies": [
             {
-        "id": "sweep",
-        "speed": 240,
+              "id": "sweep",
+              "speed": 80,
               "phase": 0,
               "mode": "pingpong",
               "points": [
@@ -173,17 +173,17 @@
           "enemies": [
             {
               "id": "gate",
-              "speed": 120,
+              "speed": 140,
               "phase": 0,
               "mode": "pingpong",
               "points": [
                 {
                   "x": 8.5,
-                  "y": 4.625
+                  "y": 4.75
                 },
                 {
                   "x": 8.5,
-                  "y": 8.375
+                  "y": 8.25
                 }
               ]
             }
@@ -224,33 +224,33 @@
           "enemies": [
             {
               "id": "a",
-              "speed": 120,
+              "speed": 140,
               "phase": 0,
               "mode": "pingpong",
               "points": [
                 {
                   "x": 9.5,
-                  "y": 4.625
+                  "y": 4.75
                 },
                 {
                   "x": 9.5,
-                  "y": 8.375
+                  "y": 8.25
                 }
               ]
             },
             {
               "id": "b",
-              "speed": 120,
-              "phase": 80,
+              "speed": 140,
+              "phase": 56,
               "mode": "pingpong",
               "points": [
                 {
                   "x": 9.5,
-                  "y": 4.625
+                  "y": 4.75
                 },
                 {
                   "x": 9.5,
-                  "y": 8.375
+                  "y": 8.25
                 }
               ]
             }
@@ -295,7 +295,7 @@
           "enemies": [
             {
               "id": "west",
-              "speed": 150,
+              "speed": 200,
               "phase": 0,
               "mode": "pingpong",
               "points": [
@@ -311,33 +311,33 @@
             },
             {
               "id": "east-a",
-              "speed": 120,
+              "speed": 140,
               "phase": 0,
               "mode": "pingpong",
               "points": [
                 {
                   "x": 12.5,
-                  "y": 4.625
+                  "y": 4.75
                 },
                 {
                   "x": 12.5,
-                  "y": 8.375
+                  "y": 8.25
                 }
               ]
             },
             {
               "id": "east-b",
-              "speed": 120,
-              "phase": 70,
+              "speed": 140,
+              "phase": 56,
               "mode": "pingpong",
               "points": [
                 {
                   "x": 12.5,
-                  "y": 4.625
+                  "y": 4.75
                 },
                 {
                   "x": 12.5,
-                  "y": 8.375
+                  "y": 8.25
                 }
               ]
             }
@@ -382,39 +382,39 @@
           "enemies": [
             {
               "id": "pair-a",
-              "speed": 120,
+              "speed": 140,
               "phase": 0,
               "mode": "pingpong",
               "points": [
                 {
                   "x": 6.5,
-                  "y": 4.625
+                  "y": 4.75
                 },
                 {
                   "x": 6.5,
-                  "y": 8.375
+                  "y": 8.25
                 }
               ]
             },
             {
               "id": "pair-b",
-              "speed": 120,
-              "phase": 80,
+              "speed": 140,
+              "phase": 56,
               "mode": "pingpong",
               "points": [
                 {
                   "x": 6.5,
-                  "y": 4.625
+                  "y": 4.75
                 },
                 {
                   "x": 6.5,
-                  "y": 8.375
+                  "y": 8.25
                 }
               ]
             },
             {
               "id": "fast",
-              "speed": 150,
+              "speed": 200,
               "phase": 0,
               "mode": "pingpong",
               "points": [

@@ -51,15 +51,43 @@ export type HudMetric = {
   value: string
 }
 
+/** Page backdrop. Each game owns its own; the shelf stays on the liquid backdrop. */
+export type GameTheme = {
+  background: string
+  foreground: string
+  vignette: string
+}
+
+/** Ask bar, owned by the shell and driven by the game. */
+export type AskState = {
+  visible: boolean
+  focus: boolean
+  pulse: boolean
+  placeholder: string
+  maxLength: number
+  chips: readonly string[]
+}
+
 export type HudState = {
   metrics: HudMetric[]
   status: string | null
+  /** Ghost hint. Null hides it. The shell shows a non-null hint for 5s. */
+  hint: string | null
+  ask: AskState
+}
+
+export type AskHandlers = {
+  /** Enter in an empty ask. Words uses this to start the next round. */
+  onEmptyEnter: () => void
+  /** Escape, or the ask closing without a submit. */
+  onDismiss: () => void
 }
 
 export type GameRendererProps = {
   branch: BranchRecord
   onHud: (hud: HudState) => void
   onReady: () => void
+  registerAsk: (handlers: AskHandlers) => void
 }
 
 export type SolveLevelResult = {
@@ -75,8 +103,9 @@ export type GameHeadless = {
   title: string
   summary: string
   rootBranchId: string
-  /** Static ask chips. The shell renders them and does not interpret them. */
-  contextChips: readonly string[]
+  theme: GameTheme
+  /** Ask bar before the renderer reports. The renderer replaces it via onHud. */
+  ask: AskState
   seed: {
     branches: readonly BranchRecord[]
   }
@@ -85,8 +114,8 @@ export type GameHeadless = {
     prepare: (branch: BranchRecord) => void
   }
   input: {
-    /** Shown by the shell for the first seconds of play. */
-    hint: string
+    /** First-play hint. Null when this game has nothing to say. */
+    hint: string | null
   }
   solver: {
     run: () => SolveLevelResult[]

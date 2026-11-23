@@ -48,7 +48,7 @@ function centroid(tiles: FlipTile[]): { x: number; y: number } {
   return { x: sum.x / tiles.length, y: sum.y / tiles.length }
 }
 
-export function PlatformerRenderer({ branch, onHud, onReady }: GameRendererProps) {
+export function PlatformerRenderer({ branch, onHud, onReady, registerAsk }: GameRendererProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   const onHudRef = useRef(onHud)
@@ -79,6 +79,8 @@ export function PlatformerRenderer({ branch, onHud, onReady }: GameRendererProps
     let holdUntil = 0
     let pending: { due: number; run: () => void }[] = []
     let clearedAll = false
+    let levelsCleared = 0
+    let chips = ["slow the fast dots", "add a safe zone", "widen this gap"]
     let acc = 0
     let last = performance.now()
     let ready = false
@@ -96,6 +98,15 @@ export function PlatformerRenderer({ branch, onHud, onReady }: GameRendererProps
           { id: "level", label: "level", value: String(levelIndex + 1) },
         ],
         status: clearedAll ? "five rooms cleared" : null,
+        hint: "arrows to move",
+        ask: {
+          visible: true,
+          focus: false,
+          pulse: deaths >= 3 || levelsCleared > 0,
+          placeholder: "what should change?",
+          maxLength: 140,
+          chips,
+        },
       }
       const key = JSON.stringify(hud)
       if (key === hudKey) return
@@ -105,7 +116,11 @@ export function PlatformerRenderer({ branch, onHud, onReady }: GameRendererProps
 
     const boot = (index: number, keepDeaths: boolean) => {
       levelIndex = index
-      if (!keepDeaths) deaths = 0
+      if (!keepDeaths) {
+        deaths = 0
+        levelsCleared = 0
+        chips = ["slow the fast dots", "add a safe zone", "widen this gap"]
+      }
       sim = initialSim(snapshot.levels[index])
       const tiles = flipTiles(snapshot.levels[index])
       flips = new Map(planTileFlip(tiles, centroid(tiles)).map((tile) => [tile.id, tile]))
@@ -179,6 +194,12 @@ export function PlatformerRenderer({ branch, onHud, onReady }: GameRendererProps
           attempt.push({ x: result.sim.x, y: result.sim.y })
           if (result.events.died) {
             deaths += 1
+            chips =
+              deaths >= 6
+                ? ["slow the fast dots", "add a safe zone", "widen this gap"]
+                : deaths >= 3
+                  ? ["add a safe zone", "slow the fast dots", "widen this gap"]
+                  : ["widen this gap", "add a safe zone", "slow the fast dots"]
             const path = attempt.slice()
             playThump()
             const due = performance.now() + SOUND_LEAD_MS
@@ -215,6 +236,8 @@ export function PlatformerRenderer({ branch, onHud, onReady }: GameRendererProps
             const due = performance.now() + SOUND_LEAD_MS
             const lastLevel = levelIndex >= snapshot.levels.length - 1
             const nextIndex = levelIndex + 1
+            levelsCleared += 1
+            chips = ["add a level after this", "slow the fast dots", "add a safe zone"]
             pending.push({
               due,
               run: () => {
@@ -268,6 +291,7 @@ export function PlatformerRenderer({ branch, onHud, onReady }: GameRendererProps
     }
 
     boot(0, false)
+    registerAsk({ onEmptyEnter: () => {}, onDismiss: () => {} })
     window.addEventListener("keydown", onKeyDown)
     window.addEventListener("keyup", onKeyUp)
     window.addEventListener("blur", onBlur)
@@ -278,7 +302,7 @@ export function PlatformerRenderer({ branch, onHud, onReady }: GameRendererProps
       window.removeEventListener("keyup", onKeyUp)
       window.removeEventListener("blur", onBlur)
     }
-  }, [branch, onHud, onReady])
+  }, [branch, onHud, onReady, registerAsk])
 
   return (
     <div

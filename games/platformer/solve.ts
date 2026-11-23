@@ -313,6 +313,7 @@ function solveLevel(level: RuntimeLevel, speed: number): SolveLevelResult {
     ok: true,
     pathLength: Math.round(proved.length),
     notes: [
+      `path ${Math.round(proved.length)}px`,
       `frames ${proved.frames}`,
       `stretch ${(proved.stretch / 60).toFixed(2)}s`,
       `states ${expanded}`,

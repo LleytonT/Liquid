@@ -57,7 +57,7 @@ export function drawFrame(ctx: CanvasRenderingContext2D, input: DrawInput): void
           ? sampleTileFlip(elapsed, planned.delayMs, planned.durationMs)
           : { scaleY: 1, outline: 0, started: true }
         if (!sample.started) continue
-        const color = ch === "#" ? PALETTE.wall : ch === "E" ? PALETTE.end : PALETTE.safe
+        const color = ch === "#" ? PALETTE.wall : PALETTE.safe
         paintTile(
           ctx,
           (col + 0.5) * LOCKED.tilePx,
@@ -66,6 +66,7 @@ export function drawFrame(ctx: CanvasRenderingContext2D, input: DrawInput): void
           sample.scaleY,
           color,
           sample.outline,
+          ch === "E",
         )
       }
     }
@@ -98,8 +99,11 @@ export function drawFrame(ctx: CanvasRenderingContext2D, input: DrawInput): void
     ctx.beginPath()
     ctx.arc(0, 0, level.coinRadius, 0, Math.PI * 2)
     ctx.fill()
+    ctx.lineWidth = 3
+    ctx.strokeStyle = PALETTE.ink
+    ctx.stroke()
     if (sample.outline > 0) {
-      ctx.strokeStyle = hexAlpha(PALETTE.outline, sample.outline)
+      ctx.strokeStyle = hexAlpha(PALETTE.agent, sample.outline)
       ctx.lineWidth = 2
       ctx.beginPath()
       ctx.arc(0, 0, level.coinRadius + 3, 0, Math.PI * 2)
@@ -115,7 +119,7 @@ export function drawFrame(ctx: CanvasRenderingContext2D, input: DrawInput): void
     ctx.beginPath()
     ctx.moveTo(ghost.points[0].x, ghost.points[0].y)
     for (const point of ghost.points) ctx.lineTo(point.x, point.y)
-    ctx.strokeStyle = `rgba(226, 59, 59, ${alpha})`
+    ctx.strokeStyle = `rgba(255, 46, 46, ${alpha})`
     ctx.lineWidth = 3
     ctx.stroke()
   }
@@ -141,10 +145,9 @@ export function drawFrame(ctx: CanvasRenderingContext2D, input: DrawInput): void
     ctx.beginPath()
     ctx.arc(enemy.x, enemy.y, input.enemyVisualRadius, 0, Math.PI * 2)
     ctx.fill()
-    ctx.fillStyle = PALETTE.enemyCore
-    ctx.beginPath()
-    ctx.arc(enemy.x, enemy.y, LOCKED.enemyHitboxPx / 2, 0, Math.PI * 2)
-    ctx.fill()
+    ctx.lineWidth = 3
+    ctx.strokeStyle = PALETTE.ink
+    ctx.stroke()
   })
 
   const showPlayer = sim.alive || now < input.holdPlayerUntil
@@ -169,6 +172,7 @@ function paintTile(
   scaleY: number,
   color: string,
   outline: number,
+  goal = false,
 ): void {
   const scale = Math.max(0, scaleY)
   ctx.save()
@@ -178,8 +182,14 @@ function paintTile(
   roundRect(ctx, -size / 2 + 2, -size / 2 + 2, size)
   ctx.fillStyle = color
   roundRect(ctx, -size / 2, -size / 2, size)
+  ctx.strokeStyle = PALETTE.ink
+  ctx.lineWidth = 3
+  ctx.strokeRect(-size / 2 + 1.5, -size / 2 + 1.5, size - 3, size - 3)
+  if (goal) {
+    ctx.strokeRect(-size / 2 + 8, -size / 2 + 8, size - 16, size - 16)
+  }
   if (outline > 0) {
-    ctx.strokeStyle = hexAlpha(PALETTE.outline, outline)
+    ctx.strokeStyle = hexAlpha(PALETTE.agent, outline)
     ctx.lineWidth = 3
     ctx.strokeRect(-size / 2 - 1.5, -size / 2 - 1.5, size + 3, size + 3)
   }

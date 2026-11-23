@@ -1,6 +1,6 @@
 # liquid
 
-A shelf of small games. The first one is `seed`: five original rooms, a red square, blue dots, coins, and green safe ground. Deaths are the score. `/` and `/b/seed` drop straight into play.
+A shelf of two games. `/` opens `seed`, five original rooms: a red square, blue dots, coins, and green safe ground. Deaths are the score. [Liquid Words](http://127.0.0.1:38471/b/words) is five letters and six guesses. Its word lists are derived from [SCOWL 2020.12.07](https://wordlist.aspell.net/); see `games/words/LICENSE-SCOWL.txt`.
 
 ## Run
 
@@ -16,7 +16,7 @@ npm run build
 npm start
 ```
 
-`npm run solve` proves each seed level is finishable with the locked 24px player and 6px enemy hitboxes, and prints a path length per level.
+`npm run solve` checks both games: each platformer level has a finishable path, and every Liquid Words answer is on the valid list and winnable under the current tunables.
 
 Arrow keys or WASD move. On a touch screen, use the pad at the lower right. The ask bar only keeps a plan card; nothing is built from it yet.
 
