@@ -22,6 +22,7 @@ export type DrawInput = {
   holdPlayerUntil: number
   playerVisualPx: number
   enemyVisualRadius: number
+  enemySpeedScale?: number
   /** Show the spawn marker until this timestamp. 0 hides it. */
   youUntil?: number
   youPulse?: boolean
@@ -126,7 +127,7 @@ export function drawFrame(ctx: CanvasRenderingContext2D, input: DrawInput): void
     ctx.stroke()
   }
 
-  const enemies = positionsAt(level, sim.frame)
+  const enemies = positionsAt(level, sim.frame, input.enemySpeedScale ?? 1)
   enemies.forEach((enemy, index) => {
     const trail = input.trails[index] ?? []
     ctx.lineCap = "round"

@@ -49,7 +49,15 @@ function centroid(tiles: FlipTile[]): { x: number; y: number } {
   return { x: sum.x / tiles.length, y: sum.y / tiles.length }
 }
 
-export function PlatformerRenderer({ branch, onHud, onReady, registerAsk, paused = false }: GameRendererProps) {
+export function PlatformerRenderer({
+  branch,
+  onHud,
+  onReady,
+  registerAsk,
+  paused = false,
+  tweaks,
+  onLife,
+}: GameRendererProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   const onHudRef = useRef(onHud)
@@ -63,11 +71,15 @@ export function PlatformerRenderer({ branch, onHud, onReady, registerAsk, paused
     action: "next" | "replay"
   } | null>(null)
   const pausedRef = useRef(paused)
+  const tweaksRef = useRef(tweaks)
+  const onLifeRef = useRef(onLife)
   const skipClearRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
     pausedRef.current = paused
-  }, [paused])
+    tweaksRef.current = tweaks
+    onLifeRef.current = onLife
+  }, [paused, tweaks, onLife])
 
   useEffect(() => {
     onHudRef.current = onHud
@@ -243,7 +255,14 @@ export function PlatformerRenderer({ branch, onHud, onReady, registerAsk, paused
             if (keys.has("arrowdown") || keys.has("s")) y += 1
           }
           const beforeAlive = sim.alive
-          const result = step(sim, { x, y }, level(), snapshot.playerSpeed)
+          const live = tweaksRef.current
+          const result = step(
+            sim,
+            { x, y },
+            level(),
+            live?.playerSpeed ?? snapshot.playerSpeed,
+            live?.enemySpeedScale ?? 1,
+          )
           sim = result.sim
           attempt.push({ x: sim.x, y: sim.y })
           if (result.events.died) {
@@ -277,6 +296,7 @@ export function PlatformerRenderer({ branch, onHud, onReady, registerAsk, paused
             hudDirty = true
             attempt = []
             youUntil = now + FEEL.youMarkMs
+            onLifeRef.current?.()
           }
           if (result.events.cleared) {
             playChord()
@@ -310,7 +330,7 @@ export function PlatformerRenderer({ branch, onHud, onReady, registerAsk, paused
               skipClearRef.current = () => boot(nextIndex, true)
             }
           }
-          const places = positionsAt(level(), sim.frame)
+          const places = positionsAt(level(), sim.frame, tweaksRef.current?.enemySpeedScale ?? 1)
           places.forEach((place, index) => {
             trails[index] = [...(trails[index] ?? []), place].slice(-FEEL.dotTrailFrames)
           })
@@ -336,10 +356,12 @@ export function PlatformerRenderer({ branch, onHud, onReady, registerAsk, paused
         holdPlayerUntil: holdUntil,
         playerVisualPx: snapshot.playerVisualPx,
         enemyVisualRadius: snapshot.enemyVisualRadiusPx,
+        enemySpeedScale: tweaksRef.current?.enemySpeedScale ?? 1,
         youUntil,
         youPulse: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
       })
       stage.dataset.you = now < youUntil ? "1" : "0"
+      stage.dataset.enemyScale = String(tweaksRef.current?.enemySpeedScale ?? 1)
       if (!ready) {
         ready = true
         onReadyRef.current()

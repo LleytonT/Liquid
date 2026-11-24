@@ -109,6 +109,17 @@ test("movement is 120px per simulated second on open ground", () => {
   assert.equal(sim.y, anteroom.spawn.y)
 })
 
+test("a slower enemy scale moves the blue shapes less", () => {
+  const full = positionsAt(anteroom, 40, 1)[0]
+  const slow = positionsAt(anteroom, 40, 0.55)[0]
+  assert.ok(full && slow)
+  const start = anteroom.enemies[0]
+  assert.ok(start)
+  const fullTravel = Math.hypot(full.x - start.poly.pts[0].x, full.y - start.poly.pts[0].y)
+  const slowTravel = Math.hypot(slow.x - start.poly.pts[0].x, slow.y - start.poly.pts[0].y)
+  assert.ok(slowTravel < fullTravel * 0.7, `${slowTravel} vs ${fullTravel}`)
+})
+
 test("a 2px lip in the level 2 corridor does not trap a leftward move", () => {
   let sim = { ...initialSim(gate), x: 268, y: 214, frame: 0 }
   for (let i = 0; i < 20; i++) {

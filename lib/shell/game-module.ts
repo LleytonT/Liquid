@@ -127,8 +127,12 @@ export type GameRendererProps = {
   onHud: (hud: HudState) => void
   onReady: () => void
   registerAsk: (handlers: AskHandlers) => void
-  /** True while the how-to overlay is open. Games must not advance. */
+  /** True while a pause or how-to overlay is open. Games must not advance. */
   paused?: boolean
+  /** Tunables already applied for this visit. Undefined until the next respawn or round. */
+  tweaks?: Record<string, number>
+  /** Called when the platformer respawns, or when words starts another round. */
+  onLife?: () => void
 }
 
 export type SolveLevelResult = {

@@ -82,6 +82,7 @@ export function step(
   dir: Dir,
   level: RuntimeLevel,
   playerSpeed: number,
+  enemySpeedScale = 1,
 ): { sim: Sim; events: StepEvents } {
   const sim: Sim = {
     ...prev,
@@ -114,7 +115,7 @@ export function step(
     sim.y = moved.y
   }
 
-  for (const enemy of positionsAt(level, sim.frame)) {
+  for (const enemy of positionsAt(level, sim.frame, enemySpeedScale)) {
     if (hitsEnemy(sim.x, sim.y, enemy.x, enemy.y)) {
       sim.alive = false
       sim.respawnFrames = RESPAWN_FRAMES

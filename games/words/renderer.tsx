@@ -48,8 +48,22 @@ function firstSecret(snapshot: WordsSnapshot): string {
   return word
 }
 
-export function WordsRenderer({ branch, onHud, onReady, registerAsk, paused = false }: GameRendererProps) {
+export function WordsRenderer({
+  branch,
+  onHud,
+  onReady,
+  registerAsk,
+  paused = false,
+  tweaks,
+  onLife,
+}: GameRendererProps) {
   const snapshot = useMemo(() => prepareWords(branch), [branch])
+  const guesses = tweaks?.guesses ?? snapshot.guesses
+  const timerSeconds = tweaks?.timerSeconds ?? snapshot.timerSeconds
+  const hardMode = tweaks?.hardMode !== undefined ? tweaks.hardMode >= 1 : snapshot.hardMode
+  const onLifeRef = useRef(onLife)
+  const roundRef = useRef(0)
+  const usedRef = useRef<string[]>([])
   const valid = useRef(new Set(snapshot.lists.valid))
   const answer0 = useSyncExternalStore(
     () => () => {},
@@ -92,14 +106,15 @@ export function WordsRenderer({ branch, onHud, onReady, registerAsk, paused = fa
   }
 
   const begin = (nextRound: number, already: string[], word: string) => {
+    onLifeRef.current?.()
     setRound(nextRound)
     setUsed(already)
     setAnswer(word)
     remember(word)
     commitTyping(emptyTyping())
-    timeRef.current = snapshot.timerSeconds
+    timeRef.current = timerSeconds
     expiredRef.current = false
-    setTimeLeft(snapshot.timerSeconds)
+    setTimeLeft(timerSeconds)
     setRows([])
     setShown(0)
     setWon(false)
@@ -120,11 +135,14 @@ export function WordsRenderer({ branch, onHud, onReady, registerAsk, paused = fa
       length: snapshot.length,
       accepts: (word) => {
         if (!valid.current.has(word)) return NOT_IN_WORD_LIST
-        if (snapshot.hardMode && !hardModeAllows(word, rowsRef.current)) return "use the revealed hints"
+        if (hardMode && !hardModeAllows(word, rowsRef.current)) return "use the revealed hints"
         return null
       },
     }
     beginRef.current = begin
+    onLifeRef.current = onLife
+    roundRef.current = round
+    usedRef.current = used
   })
 
   useEffect(() => {
@@ -135,18 +153,12 @@ export function WordsRenderer({ branch, onHud, onReady, registerAsk, paused = fa
 
   useEffect(() => {
     registerAsk({
-      onEmptyEnter: () => {
-        if (phase !== "ended") return false
-        const next = round + 1
-        const word = pickAnswer(snapshot, next, new Set([...used, answer]), Math.random())
-        beginRef.current(next, [...used, answer], word)
-        return true
-      },
+      onEmptyEnter: () => false,
       onDismiss: () => {
         if (phase !== "ended") setAskOpen(false)
       },
     })
-  }, [registerAsk, phase, round, used, answer, snapshot])
+  }, [registerAsk, phase])
 
   useEffect(() => {
     const pulsing = phase === "ended"
@@ -155,9 +167,9 @@ export function WordsRenderer({ branch, onHud, onReady, registerAsk, paused = fa
         { id: "round", label: "round", value: String(round + 1) },
         { id: "streak", label: "streak", value: String(streak) },
         { id: "score", label: "score", value: String(score) },
-        ...(snapshot.timerSeconds > 0 ? [{ id: "time", label: "time", value: `${timeLeft}s` }] : []),
+        ...(timerSeconds > 0 ? [{ id: "time", label: "time", value: `${timeLeft}s` }] : []),
       ],
-      status: snapshot.hardMode ? "hard mode" : null,
+      status: hardMode ? "hard mode" : null,
       hint: hintOn ? wordsCopy.firstRunHint : null,
       ask: {
         visible: phase === "ended" || askOpen,
@@ -168,10 +180,10 @@ export function WordsRenderer({ branch, onHud, onReady, registerAsk, paused = fa
         chips: pulsing ? [wordsCopy.pulseChip, ...CHIPS] : CHIPS,
       },
     })
-  }, [onHud, score, streak, phase, askOpen, snapshot.hardMode, snapshot.timerSeconds, timeLeft, hintOn, round])
+  }, [onHud, score, streak, phase, askOpen, hardMode, timerSeconds, timeLeft, hintOn, round])
 
   useEffect(() => {
-    if (snapshot.timerSeconds <= 0 || phase === "ended") return
+    if (paused || timerSeconds <= 0 || phase === "ended") return
     const timer = window.setInterval(() => {
       const next = Math.max(0, timeRef.current - 1)
       timeRef.current = next
@@ -185,7 +197,7 @@ export function WordsRenderer({ branch, onHud, onReady, registerAsk, paused = fa
       commitTyping({ ...emptyTyping(), phase: "ended" })
       setStreak(0)
       setWon(false)
-      setStats(`x/${snapshot.guesses} · +0 · streak 0`)
+      setStats(`x/${guesses} · +0 · streak 0`)
       setPoster(true)
       toast.custom(() => <div className="answer-pill">{answerRef.current}</div>, {
         duration: 1200,
@@ -193,7 +205,7 @@ export function WordsRenderer({ branch, onHud, onReady, registerAsk, paused = fa
       })
     }, 1000)
     return () => window.clearInterval(timer)
-  }, [phase, round, snapshot.timerSeconds, snapshot.guesses])
+  }, [paused, phase, round, timerSeconds, guesses])
 
   useEffect(() => {
     if (phase !== "reveal") return
@@ -208,7 +220,7 @@ export function WordsRenderer({ branch, onHud, onReady, registerAsk, paused = fa
     timers.push(
       window.setTimeout(() => {
         const success = last.marks.every((mark) => mark === "correct")
-        const lost = !success && (rows.length >= snapshot.guesses || expiredRef.current)
+        const lost = !success && (rows.length >= guesses || expiredRef.current)
         if (!success && !lost) {
           const drained = endReveal(typingRef.current, contextRef.current)
           commitTyping(drained.state)
@@ -226,16 +238,16 @@ export function WordsRenderer({ branch, onHud, onReady, registerAsk, paused = fa
         if (success) {
           setStreak((current) => {
             const nextStreak = current + 1
-            const points = guessPoints(rows.length, snapshot.guesses)
+            const points = guessPoints(rows.length, guesses)
             setScore((total) => total + points + 5 * nextStreak)
-            setStats(`${rows.length}/${snapshot.guesses} · +${points} · streak ${nextStreak}`)
+            setStats(`${rows.length}/${guesses} · +${points} · streak ${nextStreak}`)
             return nextStreak
           })
           setWon(true)
         } else {
           setStreak(0)
           setWon(false)
-          setStats(`x/${snapshot.guesses} · +0 · streak 0`)
+          setStats(`x/${guesses} · +0 · streak 0`)
         }
         setPoster(true)
         toast.custom(
@@ -247,7 +259,7 @@ export function WordsRenderer({ branch, onHud, onReady, registerAsk, paused = fa
       }, finished),
     )
     return () => timers.forEach((timer) => window.clearTimeout(timer))
-  }, [phase, rows, snapshot, answer])
+  }, [phase, rows, snapshot, answer, guesses])
 
   const scoreGuess = useCallback((guess: string) => {
     if (guess.length !== snapshot.length) return
@@ -292,6 +304,19 @@ export function WordsRenderer({ branch, onHud, onReady, registerAsk, paused = fa
         setAskOpen(true)
         return
       }
+      if (
+        event.key === "Enter" &&
+        typingRef.current.phase === "ended" &&
+        !pausedRef.current &&
+        !isShellControl(event.target) &&
+        !isShellControl(document.activeElement)
+      ) {
+        event.preventDefault()
+        const next = roundRef.current + 1
+        const word = pickAnswer(snapshot, next, new Set([...usedRef.current, answerRef.current]), Math.random())
+        beginRef.current(next, [...usedRef.current, answerRef.current], word)
+        return
+      }
       if (isShellControl(event.target) || isShellControl(document.activeElement)) return
       if (event.key === "Enter") {
         event.preventDefault()
@@ -306,7 +331,7 @@ export function WordsRenderer({ branch, onHud, onReady, registerAsk, paused = fa
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  }, [applyKey])
+  }, [applyKey, snapshot])
 
   const best = new Map<string, Mark>()
   for (const row of rows) {
@@ -318,11 +343,11 @@ export function WordsRenderer({ branch, onHud, onReady, registerAsk, paused = fa
   }
 
   const showingDraft = phase === "play" || (phase === "reveal" && (typing.buffer.length > 0 || draft.length > 0))
-  const emptyRows = Math.max(0, snapshot.guesses - rows.length - (showingDraft ? 1 : 0))
+  const emptyRows = Math.max(0, guesses - rows.length - (showingDraft ? 1 : 0))
   const winRow = won && poster
 
   return (
-    <div className="lw" style={snapshot.guesses > 6 ? ({ "--lw-tile": "46px" } as CSSProperties) : undefined}>
+    <div className="lw" data-guesses={guesses} style={guesses > 6 ? ({ "--lw-tile": "46px" } as CSSProperties) : undefined}>
       <p className="lw-note label" role="status">
         {note}
       </p>
