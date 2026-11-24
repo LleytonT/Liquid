@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from "react"
 import { toast } from "sonner"
 import type { GameRendererProps } from "@/lib/shell/game-module"
 import { Button } from "@/components/ui/button"
@@ -80,6 +80,9 @@ export function WordsRenderer({ branch, onHud, onReady, registerAsk, paused = fa
   const [pop, setPop] = useState("")
   const [poster, setPoster] = useState(false)
   const [hintOn, setHintOn] = useState(true)
+  const [timeLeft, setTimeLeft] = useState(snapshot.timerSeconds)
+  const timeRef = useRef(snapshot.timerSeconds)
+  const expiredRef = useRef(false)
   const ready = useRef(false)
   const pausedRef = useRef(paused)
 
@@ -94,6 +97,9 @@ export function WordsRenderer({ branch, onHud, onReady, registerAsk, paused = fa
     setAnswer(word)
     remember(word)
     commitTyping(emptyTyping())
+    timeRef.current = snapshot.timerSeconds
+    expiredRef.current = false
+    setTimeLeft(snapshot.timerSeconds)
     setRows([])
     setShown(0)
     setWon(false)
@@ -149,6 +155,7 @@ export function WordsRenderer({ branch, onHud, onReady, registerAsk, paused = fa
         { id: "round", label: "round", value: String(round + 1) },
         { id: "streak", label: "streak", value: String(streak) },
         { id: "score", label: "score", value: String(score) },
+        ...(snapshot.timerSeconds > 0 ? [{ id: "time", label: "time", value: `${timeLeft}s` }] : []),
       ],
       status: snapshot.hardMode ? "hard mode" : null,
       hint: hintOn ? wordsCopy.firstRunHint : null,
@@ -161,7 +168,32 @@ export function WordsRenderer({ branch, onHud, onReady, registerAsk, paused = fa
         chips: pulsing ? [wordsCopy.pulseChip, ...CHIPS] : CHIPS,
       },
     })
-  }, [onHud, score, streak, phase, askOpen, snapshot.hardMode, hintOn, round])
+  }, [onHud, score, streak, phase, askOpen, snapshot.hardMode, snapshot.timerSeconds, timeLeft, hintOn, round])
+
+  useEffect(() => {
+    if (snapshot.timerSeconds <= 0 || phase === "ended") return
+    const timer = window.setInterval(() => {
+      const next = Math.max(0, timeRef.current - 1)
+      timeRef.current = next
+      setTimeLeft(next)
+      if (next !== 0) return
+      if (phase === "reveal") {
+        expiredRef.current = true
+        return
+      }
+      expiredRef.current = false
+      commitTyping({ ...emptyTyping(), phase: "ended" })
+      setStreak(0)
+      setWon(false)
+      setStats(`x/${snapshot.guesses} · +0 · streak 0`)
+      setPoster(true)
+      toast.custom(() => <div className="answer-pill">{answerRef.current}</div>, {
+        duration: 1200,
+        unstyled: true,
+      })
+    }, 1000)
+    return () => window.clearInterval(timer)
+  }, [phase, round, snapshot.timerSeconds, snapshot.guesses])
 
   useEffect(() => {
     if (phase !== "reveal") return
@@ -176,7 +208,7 @@ export function WordsRenderer({ branch, onHud, onReady, registerAsk, paused = fa
     timers.push(
       window.setTimeout(() => {
         const success = last.marks.every((mark) => mark === "correct")
-        const lost = !success && rows.length >= snapshot.guesses
+        const lost = !success && (rows.length >= snapshot.guesses || expiredRef.current)
         if (!success && !lost) {
           const drained = endReveal(typingRef.current, contextRef.current)
           commitTyping(drained.state)
@@ -290,7 +322,7 @@ export function WordsRenderer({ branch, onHud, onReady, registerAsk, paused = fa
   const winRow = won && poster
 
   return (
-    <div className="lw">
+    <div className="lw" style={snapshot.guesses > 6 ? ({ "--lw-tile": "46px" } as CSSProperties) : undefined}>
       <p className="lw-note label" role="status">
         {note}
       </p>

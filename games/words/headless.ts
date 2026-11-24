@@ -1,10 +1,10 @@
-import type { BranchRecord, GameHeadless } from "@/lib/shell/game-module"
+import type { GameHeadless } from "@/lib/shell/game-module"
 import { wordsCopy } from "@/games/words/copy"
-import seed from "@/games/words/seed.json"
 import { solveWords } from "@/games/words/solve"
+import { wordsBranches } from "@/games/words/starters"
 import { prepareWords } from "@/games/words/validate"
 
-const branch = seed as BranchRecord
+const branch = wordsBranches[0]
 const CHIPS = ["turn on hard mode", "fewer guesses", "rarer words"] as const
 
 export const words: GameHeadless = {
@@ -28,7 +28,7 @@ export const words: GameHeadless = {
     chips: CHIPS,
   },
   seed: {
-    branches: [branch],
+    branches: wordsBranches,
   },
   bible: {
     prepare: (record) => {
@@ -39,6 +39,12 @@ export const words: GameHeadless = {
     hint: wordsCopy.firstRunHint,
   },
   solver: {
-    run: () => solveWords(branch),
+    run: () =>
+      wordsBranches.flatMap((record) =>
+        solveWords(record).map((result) => ({
+          ...result,
+          levelId: record.parentId ? `${record.id}/${result.levelId}` : result.levelId,
+        })),
+      ),
   },
 }

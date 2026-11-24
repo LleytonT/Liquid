@@ -293,12 +293,12 @@
 .lw-tile {
   position: relative;
   display: grid;
-  width: 62px;
-  height: 62px;
+  width: var(--lw-tile, 62px);
+  height: var(--lw-tile, 62px);
   place-items: center;
   border-radius: 4px;
   font-family: var(--font-fraunces), serif;
-  font-size: 32px;
+  font-size: calc(var(--lw-tile, 62px) * 0.516);
   font-weight: 700;
   text-transform: uppercase;
   color: #1f1b16;

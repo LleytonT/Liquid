@@ -33,7 +33,9 @@ export const wordsCopy: GameCopy = {
   },
   formatStats: (metrics) => {
     if (metrics.length === 0) return ""
-    return `round ${metric(metrics, "round")} · streak ${metric(metrics, "streak")} · ${metric(metrics, "score")} pts`
+    const time = metric(metrics, "time")
+    const clock = time ? ` · ${time}` : ""
+    return `round ${metric(metrics, "round")} · streak ${metric(metrics, "streak")} · ${metric(metrics, "score")} pts${clock}`
   },
   describeBranchDiff: (branch, parent) => describeWordsDiff(branch, parent),
   overlayNote: (branch) =>

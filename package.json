@@ -8,7 +8,7 @@
     "start": "next start -p 38471",
     "lint": "eslint",
     "solve": "tsx scripts/solve.ts",
-    "test": "tsx --test games/platformer/play.test.ts games/words/typing.test.ts"
+    "test": "tsx --test games/platformer/play.test.ts games/words/typing.test.ts games/words/starters.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
