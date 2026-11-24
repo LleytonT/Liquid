@@ -110,7 +110,7 @@ function PlayCard({ card }: { card: LandingCard }) {
 const STEPS = [
   { id: "play", body: "open a branch. anyone can play." },
   { id: "prompt", body: "ask in plain words." },
-  { id: "remix", body: "the ask becomes your branch on the remix tree." },
+  { id: "remix", body: "each version shows on the remix tree." },
 ]
 
 export function Landing({ cards }: { cards: readonly LandingCard[] }) {

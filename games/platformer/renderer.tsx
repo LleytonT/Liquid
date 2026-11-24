@@ -18,7 +18,7 @@ import { FEEL } from "@/games/platformer/feel"
 import { DT, LOCKED } from "@/games/platformer/locked"
 import { initialSim, step } from "@/games/platformer/physics"
 import { collectedCount, positionsAt, type RuntimeLevel, type Sim, type Vec } from "@/games/platformer/runtime"
-import { PLATFORMER_GOAL, platformerCopy } from "@/games/platformer/copy"
+import { PLATFORMER_GOAL, PLATFORMER_TWEAK_CHIPS, platformerCopy } from "@/games/platformer/copy"
 import { preparePlatformer } from "@/games/platformer/validate"
 
 const MOVES = new Set(["arrowleft", "arrowright", "arrowup", "arrowdown", "a", "d", "w", "s"])
@@ -104,7 +104,7 @@ export function PlatformerRenderer({
     let pending: { due: number; run: () => void }[] = []
     let clearedAll = false
     let levelsCleared = 0
-    let chips = ["slow the fast dots", "add a safe zone", "widen this gap"]
+    let chips: string[] = [...PLATFORMER_TWEAK_CHIPS]
     let acc = 0
     let last = performance.now()
     let clearTimer = 0
@@ -153,7 +153,7 @@ export function PlatformerRenderer({
       if (!keepDeaths) {
         deaths = 0
         levelsCleared = 0
-        chips = ["slow the fast dots", "add a safe zone", "widen this gap"]
+        chips = [...PLATFORMER_TWEAK_CHIPS]
       }
       sim = initialSim(snapshot.levels[index])
       const tiles = flipTiles(snapshot.levels[index])
@@ -269,12 +269,8 @@ export function PlatformerRenderer({
           if (result.events.died) {
             deaths += 1
             hudDirty = true
-            chips =
-              deaths >= 6
-                ? ["slow the fast dots", "add a safe zone", "widen this gap"]
-                : deaths >= 3
-                  ? ["add a safe zone", "slow the fast dots", "widen this gap"]
-                  : ["widen this gap", "add a safe zone", "slow the fast dots"]
+            const turn = deaths >= 6 ? 0 : deaths >= 3 ? 1 : 2
+            chips = [...PLATFORMER_TWEAK_CHIPS.slice(turn), ...PLATFORMER_TWEAK_CHIPS.slice(0, turn)]
             const path = attempt.slice()
             playThump()
             const due = performance.now() + SOUND_LEAD_MS
@@ -306,7 +302,7 @@ export function PlatformerRenderer({
             const lastLevel = levelIndex >= snapshot.levels.length - 1
             const nextIndex = levelIndex + 1
             levelsCleared += 1
-            chips = ["add a level after this", "slow the fast dots", "add a safe zone"]
+            chips = [...PLATFORMER_TWEAK_CHIPS]
             const clearedLevel = levelIndex + 1
             const clearedDeaths = deaths
             pending.push({

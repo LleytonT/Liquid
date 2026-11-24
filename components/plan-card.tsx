@@ -24,7 +24,7 @@ export function PlanCard({
       </div>
       <p className="mt-2 max-w-full text-sm leading-6 break-words [overflow-wrap:anywhere]">{ask}</p>
       <ul className="label mt-3 space-y-1 text-sm text-[#3c3a55]">
-        {kept ? <li>kept on this branch</li> : null}
+        {kept ? <li>kept in this browser</li> : null}
         <li>nothing runs yet</li>
       </ul>
     </div>

@@ -363,7 +363,7 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
                 }
               />
               <TooltipContent>
-                {tipOpen ? "this is your branch. share it or keep twisting" : "remix tree"}
+                remix tree
               </TooltipContent>
             </Tooltip>
             <Tooltip>

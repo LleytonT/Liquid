@@ -1,5 +1,7 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
+import { PLATFORMER_TWEAK_CHIPS } from "@/games/platformer/copy"
+import { WORDS_TWEAK_CHIPS } from "@/games/words/copy"
 import { planAsk } from "./plan"
 import { acceptModelPlan, fallbackPlan, sanitizePatch } from "./tweak"
 
@@ -16,6 +18,24 @@ test("eight guesses is a words tweak", () => {
   assert.equal(plan.kind, "tweak")
   assert.equal(plan.patch?.guesses, 8)
   assert.equal(plan.line, "8 guesses")
+})
+
+test("the chips on the pause overlay are tweaks", () => {
+  for (const chip of PLATFORMER_TWEAK_CHIPS) {
+    const plan = fallbackPlan("platformer", chip)
+    assert.equal(plan.kind, "tweak", chip)
+    assert.ok(plan.patch)
+  }
+  for (const chip of WORDS_TWEAK_CHIPS) {
+    const plan = fallbackPlan("words", chip)
+    assert.equal(plan.kind, "tweak", chip)
+    assert.ok(plan.patch)
+  }
+  for (const chip of ["add a safe zone", "widen this gap", "add a level after this"]) {
+    const plan = fallbackPlan("platformer", chip)
+    assert.equal(plan.kind, "content", chip)
+    assert.match(plan.line, /aren't live yet/)
+  }
 })
 
 test("unknown keys are dropped and a content ask is not a success", () => {

@@ -1,7 +1,7 @@
 import type { GameHeadless } from "@/lib/shell/game-module"
 import seed from "@/games/platformer/seed.json"
 import type { BranchRecord } from "@/lib/shell/game-module"
-import { platformerCopy } from "@/games/platformer/copy"
+import { PLATFORMER_TWEAK_CHIPS, platformerCopy } from "@/games/platformer/copy"
 import { preparePlatformer } from "@/games/platformer/validate"
 import { solvePlatformer } from "@/games/platformer/solve"
 
@@ -25,7 +25,7 @@ export const platformer: GameHeadless = {
     pulse: false,
     placeholder: platformerCopy.askPlaceholder,
     maxLength: 140,
-    chips: ["slow the fast dots", "add a safe zone", "widen this gap"],
+    chips: PLATFORMER_TWEAK_CHIPS,
   },
   seed: {
     branches: [branch],

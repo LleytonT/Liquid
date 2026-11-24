@@ -8,7 +8,7 @@ import { playBlip, playScaleNote, SOUND_LEAD_MS, unlockAudio } from "@/lib/shell
 import { isShellControl } from "@/lib/shell/input"
 import { feedback, formatWinLine, guessPoints, hardModeAllows, type GradedGuess, type Mark } from "@/games/words/rules"
 import lists from "@/games/words/lists.json"
-import { wordsCopy } from "@/games/words/copy"
+import { WORDS_TWEAK_CHIPS, wordsCopy } from "@/games/words/copy"
 import {
   NOT_ENOUGH_LETTERS,
   NOT_IN_WORD_LIST,
@@ -23,7 +23,7 @@ import {
 import { pickAnswer, prepareWords, type WordsSnapshot } from "@/games/words/validate"
 
 const KEY_ROWS = ["qwertyuiop", "asdfghjkl", "zxcvbnm"]
-const CHIPS = ["turn on hard mode", "fewer guesses", "rarer words"] as const
+const CHIPS = WORDS_TWEAK_CHIPS
 const COMMON = lists.bands.common
 
 function playMark(mark: Mark) {
@@ -187,7 +187,7 @@ export function WordsRenderer({
         pulse: pulsing,
         placeholder: wordsCopy.askPlaceholder,
         maxLength: 140,
-        chips: pulsing ? [wordsCopy.pulseChip, ...CHIPS] : CHIPS,
+        chips: pulsing ? [wordsCopy.pulseChip, ...CHIPS.filter((chip) => chip !== wordsCopy.pulseChip)] : CHIPS,
       },
     })
   }, [onHud, score, streak, phase, askOpen, hardMode, timerSeconds, timeLeft, hintOn, round])

@@ -24,11 +24,17 @@ function metric(metrics: readonly HudMetric[], id: string): string {
   return metrics.find((item) => item.id === id)?.value ?? ""
 }
 
+export const PLATFORMER_TWEAK_CHIPS = [
+  "make the blue shapes slower",
+  "make the blue dots faster",
+  "make the square slower",
+] as const
+
 export const platformerCopy: GameCopy = {
   remixBlurb:
-    "anyone can ask for a twist. it becomes your own branch. a merge waits for the owner and a play-test.",
-  askPlaceholder: "ask for a twist. makes your branch",
-  pulseChip: "you can change this game",
+    "tweaks like speed, guesses or timer apply on your next try and stay in this browser. new levels aren't live yet.",
+  askPlaceholder: "ask for a twist, e.g. make the blue shapes slower",
+  pulseChip: "make the blue shapes slower",
   firstRunHint: "reach green with every coin",
   hintFadeMs: 5000,
   howTo: () => [
@@ -36,7 +42,7 @@ export const platformerCopy: GameCopy = {
     { id: "dodge", copy: "dodge the blue dots" },
     { id: "deaths", copy: "deaths count each time you are hit. you respawn at the start." },
     { id: "goal", copy: "grab every coin, then reach green" },
-    { id: "remix", copy: "anyone can ask for a twist. it becomes your own branch." },
+    { id: "remix", copy: "ask for a tweak. it applies on your next try and stays in this browser." },
   ],
   formatStats: (metrics) => {
     if (metrics.length === 0) return ""

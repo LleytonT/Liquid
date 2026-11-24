@@ -1,11 +1,11 @@
 import type { GameHeadless } from "@/lib/shell/game-module"
-import { wordsCopy } from "@/games/words/copy"
+import { WORDS_TWEAK_CHIPS, wordsCopy } from "@/games/words/copy"
 import { solveWords } from "@/games/words/solve"
 import { wordsBranches } from "@/games/words/starters"
 import { prepareWords } from "@/games/words/validate"
 
 const branch = wordsBranches[0]
-const CHIPS = ["turn on hard mode", "fewer guesses", "rarer words"] as const
+const CHIPS = WORDS_TWEAK_CHIPS
 
 export const words: GameHeadless = {
   id: "words",
