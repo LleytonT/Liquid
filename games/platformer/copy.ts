@@ -17,7 +17,7 @@ export const platformerCopy: GameCopy = {
   askPlaceholder: "ask for a twist. makes your branch",
   pulseChip: "you can change this game",
   firstRunHint: "reach green with every coin",
-  hintFadeMs: 8000,
+  hintFadeMs: 5000,
   howTo: () => [
     { id: "move", copy: "move with arrows or wasd" },
     { id: "dodge", copy: "dodge the blue dots" },
@@ -31,6 +31,9 @@ export const platformerCopy: GameCopy = {
   describeBranchDiff: (branch, parent) => describePlatformerDiff(branch, parent),
   overlayNote: () => null,
 }
+
+/** Persistent HUD line. Ink on the theme background, not a red/green cue. */
+export const PLATFORMER_GOAL = "grab every coin, reach the green zone, dodge the blue"
 
 /** Labels for knobs a player can feel. Locked hitboxes stay out of the line. */
 export function describePlatformerDiff(branch: BranchRecord, parent: BranchRecord | null): string | null {

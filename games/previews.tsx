@@ -93,7 +93,6 @@ function PlatformerLoop({ mode }: { mode: PreviewMode }) {
         flips: new Map(),
         flipStart: 0,
         now: frame.current * 16,
-        hiddenCoins: level.coins.map(() => false),
         trails: level.enemies.map(() => []),
         ghosts: [],
         flashUntil: 0,

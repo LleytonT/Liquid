@@ -4,4 +4,5 @@ export const FEEL = {
   ghostPaths: 3,
   ghostFadeMs: 4000,
   coinPulseMs: 2000,
+  youMarkMs: 3000,
 } as const

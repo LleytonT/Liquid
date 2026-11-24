@@ -16,13 +16,15 @@ export type DrawInput = {
   flips: Map<string, PlannedFlip>
   flipStart: number
   now: number
-  hiddenCoins: boolean[]
   trails: Vec[][]
   ghosts: GhostPath[]
   flashUntil: number
   holdPlayerUntil: number
   playerVisualPx: number
   enemyVisualRadius: number
+  /** Show the spawn marker until this timestamp. 0 hides it. */
+  youUntil?: number
+  youPulse?: boolean
 }
 
 function roundRect(
@@ -74,7 +76,7 @@ export function drawFrame(ctx: CanvasRenderingContext2D, input: DrawInput): void
 
   const pulse = 0.55 + 0.45 * Math.sin((now / FEEL.coinPulseMs) * Math.PI * 2)
   level.coins.forEach((coin, index) => {
-    if (input.hiddenCoins[index]) return
+    if (sim.coins[index]) return
     const planned = input.flips.get(`coin-${index}`)
     const sample = planned
       ? sampleTileFlip(elapsed, planned.delayMs, planned.durationMs)
@@ -153,6 +155,7 @@ export function drawFrame(ctx: CanvasRenderingContext2D, input: DrawInput): void
   const showPlayer = sim.alive || now < input.holdPlayerUntil
   if (showPlayer && !sim.cleared) {
     paintTile(ctx, sim.x, sim.y, input.playerVisualPx, 1, PALETTE.player, 0)
+    if (input.youUntil && now < input.youUntil) paintYou(ctx, sim.x, sim.y, input.playerVisualPx, now, input.youPulse !== false)
   } else if (showPlayer && sim.cleared) {
     paintTile(ctx, sim.x, sim.y, input.playerVisualPx, 1, PALETTE.player, 0.8)
   }
@@ -193,6 +196,36 @@ function paintTile(
     ctx.lineWidth = 3
     ctx.strokeRect(-size / 2 - 1.5, -size / 2 - 1.5, size + 3, size + 3)
   }
+  ctx.restore()
+}
+
+/** Dark ink plus a white halo, so the marker reads on both floor colors and on walls. */
+function paintYou(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number,
+  now: number,
+  pulse: boolean,
+): void {
+  const alpha = pulse ? 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(now / 140)) : 1
+  const pad = 5
+  ctx.save()
+  ctx.translate(x, y)
+  ctx.lineWidth = 5
+  ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`
+  ctx.strokeRect(-size / 2 - pad, -size / 2 - pad, size + pad * 2, size + pad * 2)
+  ctx.lineWidth = 2.5
+  ctx.strokeStyle = `rgba(26, 26, 46, ${alpha})`
+  ctx.strokeRect(-size / 2 - pad, -size / 2 - pad, size + pad * 2, size + pad * 2)
+  ctx.font = "700 13px sans-serif"
+  ctx.textAlign = "center"
+  ctx.textBaseline = "bottom"
+  ctx.lineWidth = 4
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.96)"
+  ctx.strokeText("you", 0, -size / 2 - 8)
+  ctx.fillStyle = "#1A1A2E"
+  ctx.fillText("you", 0, -size / 2 - 8)
   ctx.restore()
 }
 

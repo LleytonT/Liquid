@@ -1,6 +1,7 @@
 import { DT, RESPAWN_FRAMES } from "@/games/platformer/locked"
 import {
   cellOf,
+  collectedCount,
   createSim,
   hitsCircle,
   hitsEnemy,
@@ -30,6 +31,46 @@ function slide(level: RuntimeLevel, x: number, y: number, dx: number, dy: number
     if (!isBlocked(level, cx, ny)) cy = ny
   }
   return { x: cx, y: cy }
+}
+
+/**
+ * A 1-cell gap is 32px and the hitbox is 24px, so a player a couple of pixels
+ * off the opening catches the corner and stops. Nudge up to 2px on the other
+ * axis and retry once. The nudge only sticks when that retry actually moves.
+ */
+const LIP_PX = 2
+
+function nudgeLip(
+  level: RuntimeLevel,
+  x: number,
+  y: number,
+  dx: number,
+  dy: number,
+): { x: number; y: number } | null {
+  const horizontal = Math.abs(dx) >= Math.abs(dy)
+  const deltas: number[] = []
+  for (let px = 1; px <= LIP_PX; px++) deltas.push(-px, px)
+  for (const delta of deltas) {
+    const ox = horizontal ? x : x + delta
+    const oy = horizontal ? y + delta : y
+    if (isBlocked(level, ox, oy)) continue
+    const moved = slide(level, ox, oy, dx, dy)
+    const progressed = horizontal ? moved.x !== ox : moved.y !== oy
+    if (progressed) return moved
+  }
+  return null
+}
+
+function movePlayer(
+  level: RuntimeLevel,
+  x: number,
+  y: number,
+  dx: number,
+  dy: number,
+): { x: number; y: number } {
+  const moved = slide(level, x, y, dx, dy)
+  if (moved.x !== x || moved.y !== y) return moved
+  return nudgeLip(level, x, y, dx, dy) ?? moved
 }
 
 /**
@@ -68,7 +109,7 @@ export function step(
   const length = Math.hypot(dir.x, dir.y)
   if (length > 0) {
     const dist = playerSpeed * DT
-    const moved = slide(level, sim.x, sim.y, (dir.x / length) * dist, (dir.y / length) * dist)
+    const moved = movePlayer(level, sim.x, sim.y, (dir.x / length) * dist, (dir.y / length) * dist)
     sim.x = moved.x
     sim.y = moved.y
   }
@@ -98,7 +139,7 @@ export function step(
     sim.committed = sim.coins.slice()
   }
 
-  if (cell && level.end[cell.row][cell.col] && sim.coins.every(Boolean)) {
+  if (cell && level.end[cell.row][cell.col] && collectedCount(sim.coins) === level.coins.length) {
     sim.cleared = true
     sim.committed = sim.coins.slice()
     events.cleared = true

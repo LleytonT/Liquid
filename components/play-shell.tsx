@@ -56,9 +56,12 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
     setHud(null)
   }
   const askHandlers = useRef<AskHandlers>({
-    onEmptyEnter: () => {},
+    onEmptyEnter: () => false,
     onDismiss: () => {},
   })
+  const [hintDismissed, setHintDismissed] = useState(false)
+  const hintStarted = useRef(false)
+  const stopHint = useRef<() => void>(() => {})
 
   const onReady = useCallback(() => {
     if (ready.current) return
@@ -88,6 +91,26 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
     root.classList.add(theme)
     return () => root.classList.remove(theme)
   }, [game?.themeClass])
+
+  useEffect(() => {
+    if (howtoOpen || hintStarted.current) return
+    hintStarted.current = true
+    const timer = window.setTimeout(() => setHintDismissed(true), 5000)
+    const stop = (event: Event) => {
+      const target = event.target
+      if (target instanceof Element && target.closest("[data-shell-control]")) return
+      setHintDismissed(true)
+    }
+    window.addEventListener("keydown", stop)
+    window.addEventListener("pointerdown", stop)
+    stopHint.current = () => {
+      window.clearTimeout(timer)
+      window.removeEventListener("keydown", stop)
+      window.removeEventListener("pointerdown", stop)
+    }
+  }, [howtoOpen])
+
+  useEffect(() => () => stopHint.current(), [])
 
   useEffect(() => {
     const onCreated = () => {
@@ -206,8 +229,15 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
           {diff}
         </p>
       ) : null}
-      {view.hint ? (
-        <p className="pointer-events-none px-4 pb-1 text-[14px] font-medium text-foreground/70">{view.hint}</p>
+      {view.goal ? (
+        <p data-goal className="px-4 pb-1 text-[14px] leading-5 font-medium text-foreground">
+          {view.goal}
+        </p>
+      ) : null}
+      {!hintDismissed && !howtoOpen && view.hint ? (
+        <p data-hint className="pointer-events-none px-4 pb-1 text-[14px] font-medium text-foreground/70">
+          {view.hint}
+        </p>
       ) : null}
       <div className="relative min-h-0 flex-1 overflow-hidden">
         <Renderer

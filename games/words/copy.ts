@@ -22,7 +22,7 @@ export const wordsCopy: GameCopy = {
   askPlaceholder: "ask for a twist. makes your branch",
   pulseChip: "you can change this game",
   firstRunHint: "type a word, press enter",
-  hintFadeMs: 8000,
+  hintFadeMs: 5000,
   howTo: (branch) => {
     const guesses = branch.snapshot.tunables.guesses?.value ?? 6
     return [

@@ -354,3 +354,10 @@ export function createSim(level: RuntimeLevel): Sim {
     cleared: false,
   }
 }
+
+/** Coins currently held. The HUD and the exit both read this array. */
+export function collectedCount(coins: readonly boolean[]): number {
+  let count = 0
+  for (const coin of coins) if (coin) count += 1
+  return count
+}
