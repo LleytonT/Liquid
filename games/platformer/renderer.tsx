@@ -18,6 +18,7 @@ import { FEEL } from "@/games/platformer/feel"
 import { DT, LOCKED } from "@/games/platformer/locked"
 import { initialSim, step } from "@/games/platformer/physics"
 import { positionsAt, type RuntimeLevel, type Sim, type Vec } from "@/games/platformer/runtime"
+import { platformerCopy } from "@/games/platformer/copy"
 import { preparePlatformer } from "@/games/platformer/validate"
 
 const MOVES = new Set(["arrowleft", "arrowright", "arrowup", "arrowdown", "a", "d", "w", "s"])
@@ -48,14 +49,25 @@ function centroid(tiles: FlipTile[]): { x: number; y: number } {
   return { x: sum.x / tiles.length, y: sum.y / tiles.length }
 }
 
-export function PlatformerRenderer({ branch, onHud, onReady, registerAsk }: GameRendererProps) {
+export function PlatformerRenderer({ branch, onHud, onReady, registerAsk, paused = false }: GameRendererProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   const onHudRef = useRef(onHud)
   const onReadyRef = useRef(onReady)
   const resetRef = useRef<() => void>(() => {})
   const touchRef = useRef({ x: 0, y: 0 })
-  const [replay, setReplay] = useState(false)
+  const [clearCard, setClearCard] = useState<{
+    level: number
+    levels: number
+    deaths: number
+    action: "next" | "replay"
+  } | null>(null)
+  const pausedRef = useRef(paused)
+  const skipClearRef = useRef<(() => void) | null>(null)
+
+  useEffect(() => {
+    pausedRef.current = paused
+  }, [paused])
 
   useEffect(() => {
     onHudRef.current = onHud
@@ -83,29 +95,37 @@ export function PlatformerRenderer({ branch, onHud, onReady, registerAsk }: Game
     let chips = ["slow the fast dots", "add a safe zone", "widen this gap"]
     let acc = 0
     let last = performance.now()
+    let clearTimer = 0
     let ready = false
     let hudKey = ""
+    let hintOn = true
+    let hintAccum = 0
+    let hintMark = performance.now()
     const keys = new Set<string>()
 
     const level = () => snapshot.levels[levelIndex]
 
     const publish = () => {
       const collected = sim.coins.filter(Boolean).length
+      const pulsing = deaths >= 3 || levelsCleared > 0
       const hud = {
         metrics: [
-          { id: "deaths", label: "deaths", value: String(deaths) },
-          { id: "coins", label: "coins", value: `${collected}/${level().coins.length}` },
           { id: "level", label: "level", value: String(levelIndex + 1) },
+          { id: "levels", label: "levels", value: String(snapshot.levels.length) },
+          { id: "coins", label: "coins", value: `${collected}/${level().coins.length}` },
+          { id: "deaths", label: "deaths", value: String(deaths) },
         ],
         status: clearedAll ? "five rooms cleared" : null,
-        hint: "arrows to move",
+        hint: hintOn ? platformerCopy.firstRunHint : null,
         ask: {
           visible: true,
           focus: false,
-          pulse: deaths >= 3 || levelsCleared > 0,
-          placeholder: "what should change?",
+          pulse: pulsing,
+          placeholder: platformerCopy.askPlaceholder,
           maxLength: 140,
-          chips,
+          chips: pulsing
+            ? [platformerCopy.pulseChip, ...chips.filter((chip) => chip !== platformerCopy.pulseChip)]
+            : chips,
         },
       }
       const key = JSON.stringify(hud)
@@ -134,13 +154,21 @@ export function PlatformerRenderer({ branch, onHud, onReady, registerAsk }: Game
       clearedAll = false
       acc = 0
       resetScale()
-      setReplay(false)
+      window.clearTimeout(clearTimer)
+      skipClearRef.current = null
+      setClearCard(null)
       publish()
     }
 
     resetRef.current = () => boot(0, false)
 
     const onKeyDown = (event: KeyboardEvent) => {
+      if (pausedRef.current) return
+      if (skipClearRef.current && !isShellControl(event.target)) {
+        event.preventDefault()
+        skipClearRef.current()
+        return
+      }
       const key = event.key.toLowerCase()
       if (!MOVES.has(key)) return
       if (isShellControl(event.target) || isShellControl(document.activeElement)) return
@@ -174,7 +202,15 @@ export function PlatformerRenderer({ branch, onHud, onReady, registerAsk }: Game
     const loop = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000)
       last = now
-      if (!sim.cleared) {
+      if (!pausedRef.current) {
+        hintAccum += now - hintMark
+        if (hintOn && hintAccum >= platformerCopy.hintFadeMs) {
+          hintOn = false
+          publish()
+        }
+      }
+      hintMark = now
+      if (!sim.cleared && !pausedRef.current) {
         acc += dt
         let steps = 0
         const typing = isShellControl(document.activeElement)
@@ -215,6 +251,7 @@ export function PlatformerRenderer({ branch, onHud, onReady, registerAsk }: Game
             publish()
           }
           if (result.events.collected.length > 0) {
+            hintOn = false
             playScaleNote()
             const got = result.events.collected.slice()
             pending.push({
@@ -238,22 +275,29 @@ export function PlatformerRenderer({ branch, onHud, onReady, registerAsk }: Game
             const nextIndex = levelIndex + 1
             levelsCleared += 1
             chips = ["add a level after this", "slow the fast dots", "add a safe zone"]
+            const clearedLevel = levelIndex + 1
+            const clearedDeaths = deaths
             pending.push({
               due,
               run: () => {
                 flashUntil = performance.now() + 280
                 if (lastLevel) {
                   clearedAll = true
-                  setReplay(true)
                   publish()
                 }
               },
             })
-            if (!lastLevel) {
-              pending.push({
-                due: due + 420,
-                run: () => boot(nextIndex, true),
-              })
+            setClearCard({
+              level: clearedLevel,
+              levels: snapshot.levels.length,
+              deaths: clearedDeaths,
+              action: lastLevel ? "replay" : "next",
+            })
+            if (lastLevel) {
+              skipClearRef.current = () => boot(0, false)
+            } else {
+              clearTimer = window.setTimeout(() => boot(nextIndex, true), 1600)
+              skipClearRef.current = () => boot(nextIndex, true)
             }
           }
           const places = positionsAt(level(), sim.frame)
@@ -297,6 +341,7 @@ export function PlatformerRenderer({ branch, onHud, onReady, registerAsk }: Game
     window.addEventListener("blur", onBlur)
     raf = window.requestAnimationFrame(loop)
     return () => {
+      window.clearTimeout(clearTimer)
       window.cancelAnimationFrame(raf)
       window.removeEventListener("keydown", onKeyDown)
       window.removeEventListener("keyup", onKeyUp)
@@ -317,15 +362,27 @@ export function PlatformerRenderer({ branch, onHud, onReady, registerAsk }: Game
       }}
     >
       <canvas ref={canvasRef} className="board" aria-hidden="true" />
-      {replay ? (
-        <Button
-          type="button"
-          className="absolute bottom-16 left-1/2 z-30 -translate-x-1/2"
+      {clearCard ? (
+        <div
+          data-shell-control
+          className="absolute bottom-16 left-1/2 z-30 w-[min(18rem,calc(100%-2rem))] -translate-x-1/2 rounded-xl border border-border bg-card p-4 text-card-foreground"
           onPointerDown={(event) => event.stopPropagation()}
-          onClick={() => resetRef.current()}
         >
-          replay
-        </Button>
+          <p className="text-[20px] leading-6 font-extrabold tracking-tight">
+            level {clearCard.level} clear · {clearCard.deaths} deaths
+          </p>
+          <div className="mt-3 flex gap-1.5" aria-hidden="true">
+            {Array.from({ length: clearCard.levels }, (_, index) => (
+              <span
+                key={index}
+                className={`size-2 rounded-full ${index < clearCard.level ? "bg-foreground" : "bg-foreground/25"}`}
+              />
+            ))}
+          </div>
+          <Button type="button" variant="game" className="mt-4" onClick={() => skipClearRef.current?.()}>
+            {clearCard.action === "replay" ? "replay" : "next"}
+          </Button>
+        </div>
       ) : null}
       <div className="dpad">
         <Dpad label="up" area="u" x={0} y={-1} touchRef={touchRef} />

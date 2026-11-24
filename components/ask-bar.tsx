@@ -13,6 +13,7 @@ export function AskBar({
   onSubmit,
   onEmptyEnter,
   onDismiss,
+  note,
 }: {
   chips: readonly string[]
   maxLength: number
@@ -22,6 +23,7 @@ export function AskBar({
   onSubmit: (ask: string) => void
   onEmptyEnter: () => void
   onDismiss: () => void
+  note?: string
 }) {
   const [value, setValue] = useState("")
   const inputRef = useRef<HTMLInputElement>(null)
@@ -70,6 +72,7 @@ export function AskBar({
           ask
         </Button>
       </div>
+      {note ? <p className="text-[12px] leading-4 font-medium text-foreground/70">{note}</p> : null}
       <div className="flex flex-wrap gap-2">
         {chips.map((chip) => (
           <Button

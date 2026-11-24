@@ -2,7 +2,7 @@ import type { BranchRecord, GameHeadless } from "@/lib/shell/game-module"
 import { platformer } from "@/games/platformer/headless"
 import { words } from "@/games/words/headless"
 
-/** Games on the shell, in shelf order. The first root branch is what `/` plays. */
+/** Games on the shell, in shelf order. `/` is the landing; direct play is `/b/<rootBranchId>`. */
 export const catalog: readonly GameHeadless[] = [platformer, words]
 
 export function gameById(id: string): GameHeadless | undefined {
