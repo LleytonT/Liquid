@@ -19,6 +19,8 @@ export type DrawInput = {
   trails: Vec[][]
   ghosts: GhostPath[]
   flashUntil: number
+  /** Death stays red. A clear uses the theme primary so it does not read as failure. */
+  flashTone?: "hurt" | "clear"
   holdPlayerUntil: number
   playerVisualPx: number
   enemyVisualRadius: number
@@ -163,7 +165,8 @@ export function drawFrame(ctx: CanvasRenderingContext2D, input: DrawInput): void
 
   if (now < input.flashUntil) {
     const alpha = Math.max(0, (input.flashUntil - now) / 180) * 0.35
-    ctx.fillStyle = `rgba(226, 59, 59, ${alpha})`
+    const rgb = input.flashTone === "clear" ? "122, 92, 255" : "226, 59, 59"
+    ctx.fillStyle = `rgba(${rgb}, ${alpha})`
     ctx.fillRect(0, 0, LOCKED.cols * LOCKED.tilePx, LOCKED.rows * LOCKED.tilePx)
   }
 }

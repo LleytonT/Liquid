@@ -44,8 +44,10 @@ export function HowToOverlay({
   }
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Escape") return
     if (event.key !== "Enter" && event.key !== " " && event.key !== "ArrowRight") return
-    if ((event.key === "Enter" || event.key === " ") && event.target instanceof HTMLButtonElement) return
+    const onCloseButton = event.target instanceof HTMLElement && event.target.closest("[data-howto-close]")
+    if (onCloseButton) return
     event.preventDefault()
     advance()
   }
@@ -57,18 +59,25 @@ export function HowToOverlay({
         if (!next) onClose()
       }}
     >
-      <DialogContent data-howto={gameId} data-howto-step={step?.id ?? ""} onKeyDown={onKeyDown}>
+      <DialogContent
+        data-howto={gameId}
+        data-howto-step={step?.id ?? ""}
+        initialFocus={() => document.getElementById("howto-next")}
+        onKeyDown={onKeyDown}
+      >
         <div className="flex items-start justify-between gap-3">
           <DialogTitle className="label text-[12px] font-bold">how to play</DialogTitle>
           <DialogDismiss />
         </div>
         <div className="mt-3 h-[120px] overflow-hidden">{Visual ? <Visual reducedMotion={reducedMotion} /> : null}</div>
-        {step?.copy ? (
-          <p className="mt-4 text-[16px] leading-6 font-medium" aria-live="polite">
-            {step.copy}
-          </p>
-        ) : null}
-        {note && index === 0 ? <p className="mt-2 text-[14px] leading-5 font-medium">{note}</p> : null}
+        <div className="mt-4 h-[4.5rem]">
+          {step?.copy ? (
+            <p className="text-[16px] leading-6 font-medium" aria-live="polite">
+              {step.copy}
+            </p>
+          ) : null}
+          {note && index === 0 ? <p className="mt-2 text-[14px] leading-5 font-medium">{note}</p> : null}
+        </div>
         <div className="mt-4 flex items-center justify-between gap-3">
           <div className="flex gap-1.5" aria-hidden="true">
             {steps.map((item, dot) => (
@@ -78,7 +87,7 @@ export function HowToOverlay({
               />
             ))}
           </div>
-          <Button type="button" variant="game" onClick={advance}>
+          <Button id="howto-next" type="button" variant="game" autoFocus onClick={advance}>
             {last ? "play" : "next"}
           </Button>
         </div>

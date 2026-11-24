@@ -12,9 +12,10 @@ test("starter branches are asks on the words root and stay winnable", () => {
   assert.equal(eight.parentId, root.id)
   assert.equal(timed.parentId, root.id)
 
-  assert.equal(describeWordsDiff(hard, root), "hard mode on")
-  assert.equal(describeWordsDiff(eight, root), "8 guesses")
-  assert.equal(describeWordsDiff(timed, root), "timer 60s")
+  assert.equal(describeWordsDiff(root, null), "six guesses, no time limit")
+  assert.equal(describeWordsDiff(hard, root), "hard mode is on")
+  assert.equal(describeWordsDiff(eight, root), "eight guesses")
+  assert.equal(describeWordsDiff(timed, root), "a 60 second timer")
 
   for (const branch of wordsBranches) {
     const snapshot = prepareWords(branch)

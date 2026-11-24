@@ -164,10 +164,10 @@ function WordsLoop({ mode }: { mode: PreviewMode }) {
   }, [mode])
 
   return (
-    <div className="grid h-full place-items-center">
+    <div className="words-preview">
       <div ref={rowRef} className="lw-row" aria-hidden="true">
         {WORD.split("").map((letter, index) => (
-          <div key={letter + index} className="lw-tile" style={{ width: 46, height: 46, fontSize: 22 }}>
+          <div key={letter + index} className="lw-tile">
             {mode === "static" ? letter : ""}
           </div>
         ))}

@@ -1,13 +1,20 @@
 import type { BranchRecord, GameCopy, HudMetric } from "@/lib/shell/game-module"
 
+const GUESS_WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"]
+
+function guessPhrase(value: number): string {
+  const name = GUESS_WORDS[value] ?? String(value)
+  return `${name} guesses`
+}
+
 /** Player-facing knob labels. Add a phrase here when a tunable should show up in the diff. */
 const TUNABLE_LABELS: Record<string, (value: number) => string | null> = {
-  guesses: (value) => `${value} guesses`,
-  timerSeconds: (value) => (value > 0 ? `timer ${value}s` : "timer off"),
-  hardMode: (value) => (value > 0 ? "hard mode on" : "hard mode off"),
+  guesses: guessPhrase,
+  timerSeconds: (value) => (value > 0 ? `a ${value} second timer` : "no time limit"),
+  hardMode: (value) => (value > 0 ? "hard mode is on" : "hard mode is off"),
   length: (value) => `${value} letters`,
-  staggerMs: (value) => `reveal ${value} ms`,
-  roundEndMs: (value) => `round pause ${value / 1000}s`,
+  staggerMs: (value) => `tiles reveal ${value > 280 ? "more slowly" : "more quickly"}`,
+  roundEndMs: (value) => (value === 1500 ? "a normal pause between rounds" : "a different pause between rounds"),
 }
 
 const ROOT_LINE = ["guesses", "timerSeconds"]

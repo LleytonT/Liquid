@@ -56,3 +56,10 @@ export function guessPoints(guessesUsed: number, limit: number): number {
 export function scoreGain(guessesUsed: number, limit: number, streakAfterWin: number): number {
   return guessPoints(guessesUsed, limit) + 5 * streakAfterWin
 }
+
+/** The win line. The two bonuses add up to what the hud gains. */
+export function formatWinLine(guessesUsed: number, limit: number, streakAfterWin: number): string {
+  const points = guessPoints(guessesUsed, limit)
+  const bonus = 5 * streakAfterWin
+  return `${guessesUsed}/${limit} · +${points} +${bonus} streak`
+}

@@ -99,6 +99,7 @@ export function PlatformerRenderer({
     let ghosts: GhostPath[] = []
     let attempt: Vec[] = []
     let flashUntil = 0
+    let flashTone: "hurt" | "clear" = "hurt"
     let holdUntil = 0
     let pending: { due: number; run: () => void }[] = []
     let clearedAll = false
@@ -282,6 +283,7 @@ export function PlatformerRenderer({
               due,
               run: () => {
                 ghosts = [...ghosts, { points: path, born: performance.now() }].slice(-FEEL.ghostPaths)
+                flashTone = "hurt"
                 flashUntil = performance.now() + 180
               },
             })
@@ -310,6 +312,7 @@ export function PlatformerRenderer({
             pending.push({
               due,
               run: () => {
+                flashTone = "clear"
                 flashUntil = performance.now() + 280
                 if (lastLevel) {
                   clearedAll = true
@@ -353,6 +356,7 @@ export function PlatformerRenderer({
         trails,
         ghosts,
         flashUntil,
+        flashTone,
         holdPlayerUntil: holdUntil,
         playerVisualPx: snapshot.playerVisualPx,
         enemyVisualRadius: snapshot.enemyVisualRadiusPx,

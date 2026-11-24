@@ -6,7 +6,7 @@ import type { GameRendererProps } from "@/lib/shell/game-module"
 import { Button } from "@/components/ui/button"
 import { playBlip, playScaleNote, SOUND_LEAD_MS, unlockAudio } from "@/lib/shell/audio"
 import { isShellControl } from "@/lib/shell/input"
-import { feedback, guessPoints, hardModeAllows, type GradedGuess, type Mark } from "@/games/words/rules"
+import { feedback, formatWinLine, guessPoints, hardModeAllows, type GradedGuess, type Mark } from "@/games/words/rules"
 import lists from "@/games/words/lists.json"
 import { wordsCopy } from "@/games/words/copy"
 import {
@@ -97,6 +97,8 @@ export function WordsRenderer({
   const [timeLeft, setTimeLeft] = useState(snapshot.timerSeconds)
   const timeRef = useRef(snapshot.timerSeconds)
   const expiredRef = useRef(false)
+  const wonRef = useRef(false)
+  const advanceWinRef = useRef(() => {})
   const ready = useRef(false)
   const pausedRef = useRef(paused)
 
@@ -143,6 +145,14 @@ export function WordsRenderer({
     onLifeRef.current = onLife
     roundRef.current = round
     usedRef.current = used
+    wonRef.current = won
+    advanceWinRef.current = () => {
+      if (!wonRef.current) return
+      wonRef.current = false
+      const next = round + 1
+      const word = pickAnswer(snapshot, next, new Set([...used, answer]), Math.random())
+      begin(next, [...used, answer], word)
+    }
   })
 
   useEffect(() => {
@@ -240,7 +250,7 @@ export function WordsRenderer({
             const nextStreak = current + 1
             const points = guessPoints(rows.length, guesses)
             setScore((total) => total + points + 5 * nextStreak)
-            setStats(`${rows.length}/${guesses} · +${points} · streak ${nextStreak}`)
+            setStats(formatWinLine(rows.length, guesses, nextStreak))
             return nextStreak
           })
           setWon(true)
@@ -304,10 +314,14 @@ export function WordsRenderer({
         setAskOpen(true)
         return
       }
+      if (wonRef.current && event.key === "Enter" && !isShellControl(event.target) && !isShellControl(document.activeElement)) {
+        event.preventDefault()
+        advanceWinRef.current()
+        return
+      }
       if (
         event.key === "Enter" &&
         typingRef.current.phase === "ended" &&
-        !pausedRef.current &&
         !isShellControl(event.target) &&
         !isShellControl(document.activeElement)
       ) {
@@ -351,7 +365,13 @@ export function WordsRenderer({
       <p className="lw-note label" role="status">
         {note}
       </p>
-      <div className="lw-board" aria-label="board">
+      <div
+        className="lw-board"
+        aria-label="board"
+        onPointerDown={() => {
+          if (wonRef.current) advanceWinRef.current()
+        }}
+      >
         {rows.filter((row) => row.guess.length === snapshot.length).map((row, rowIndex) => {
           const live = row === rows[rows.length - 1] && phase === "reveal"
           const celebrate = winRow && row.marks.every((item) => item === "correct")
@@ -392,7 +412,19 @@ export function WordsRenderer({
         ))}
       </div>
       {poster ? (
-        <p className="tabular text-[14px] font-bold">{stats}</p>
+        <div className="grid justify-items-center gap-2">
+          <p className="tabular text-[14px] font-bold">{stats}</p>
+          {won ? (
+            <button
+              type="button"
+              data-win-next
+              className="text-[14px] font-bold"
+              onClick={() => advanceWinRef.current()}
+            >
+              press enter or tap for next
+            </button>
+          ) : null}
+        </div>
       ) : (
         <div className="lw-keys">
           {KEY_ROWS.map((row, rowIndex) => (

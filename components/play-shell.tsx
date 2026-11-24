@@ -294,39 +294,56 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
           <Badge variant="secondary" className="label shrink-0">
             {branchLabel(branch)}
           </Badge>
+          <Link href="/shelf" data-shelf className="label shrink-0 text-[12px] font-bold">
+            shelf
+          </Link>
         </div>
         <p className="tabular min-w-0 flex-1 truncate text-center text-[14px] font-bold" aria-live="polite">
           {stats}
         </p>
         {view.status ? <p className="label hidden text-[12px] font-bold sm:block">{view.status}</p> : null}
-        <div className="flex shrink-0 items-center">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label={paused ? "resume" : "pause"}
-            aria-pressed={paused}
-            onClick={() => setPaused((value) => !value)}
-          >
-            {paused ? <Play /> : <Pause />}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label="how to play"
-            onClick={() => {
-              setHowtoSession((current) => current + 1)
-              setForcedGame(gameId)
-            }}
-          >
-            <CircleHelp />
-          </Button>
-          <TooltipProvider>
+        <TooltipProvider delay={400}>
+          <div className="flex shrink-0 items-center">
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label={paused ? "resume" : "pause"}
+                    aria-pressed={paused}
+                    onClick={() => setPaused((value) => !value)}
+                  >
+                    {paused ? <Play /> : <Pause />}
+                  </Button>
+                }
+              />
+              <TooltipContent>{paused ? "resume" : "pause"}</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="how to play"
+                    onClick={() => {
+                      setHowtoSession((current) => current + 1)
+                      setForcedGame(gameId)
+                    }}
+                  >
+                    <CircleHelp />
+                  </Button>
+                }
+              />
+              <TooltipContent>how to play</TooltipContent>
+            </Tooltip>
             <Tooltip
-              open={tipOpen}
+              open={tipOpen ? true : undefined}
               onOpenChange={(next) => {
-                if (!next) {
+                if (!next && tipOpen) {
                   window.localStorage.setItem(BRANCH_TIP_KEY, "1")
                   setTipOpen(false)
                 }
@@ -345,20 +362,29 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
                   </Button>
                 }
               />
-              <TooltipContent>this is your branch. share it or keep twisting</TooltipContent>
+              <TooltipContent>
+                {tipOpen ? "this is your branch. share it or keep twisting" : "remix tree"}
+              </TooltipContent>
             </Tooltip>
-          </TooltipProvider>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label={muted ? "unmute" : "mute"}
-            aria-pressed={muted}
-            onClick={() => setMuted(!muted)}
-          >
-            {muted ? <VolumeX /> : <Volume2 />}
-          </Button>
-        </div>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label={muted ? "unmute" : "mute"}
+                    aria-pressed={muted}
+                    onClick={() => setMuted(!muted)}
+                  >
+                    {muted ? <VolumeX /> : <Volume2 />}
+                  </Button>
+                }
+              />
+              <TooltipContent>{muted ? "unmute" : "mute"}</TooltipContent>
+            </Tooltip>
+          </div>
+        </TooltipProvider>
       </header>
       {diff ? (
         <p data-branch-diff className="label px-4 pb-1 text-[14px] font-medium text-foreground/80">
