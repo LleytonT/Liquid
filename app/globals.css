@@ -470,6 +470,43 @@
   }
 }
 
+.keycap {
+  display: grid;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--foreground) 25%, transparent);
+}
+
+.keycap[data-pressed="true"] {
+  transform: translateY(2px);
+  box-shadow: none;
+}
+
+.dialog-overlay {
+  background: color-mix(in srgb, var(--foreground) 40%, transparent);
+}
+
+.remix-grow {
+  stroke-dasharray: 180;
+  animation: remix-grow 1.6s ease-out infinite;
+}
+
+@keyframes remix-grow {
+  from {
+    stroke-dashoffset: 180;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
 .play-card {
   transition: transform 200ms ease-out;
 }
@@ -499,10 +536,16 @@
   .lw-tile.flip,
   .lw-tile.win,
   .lw-row.shake,
-  .lw-key.pop {
+  .lw-key.pop,
+  .remix-grow,
+  .keycap {
     animation-duration: 150ms;
     animation-name: liquid-fade;
     animation-timing-function: ease-out;
+  }
+
+  .keycap[data-pressed="true"] {
+    transform: none;
   }
 }
 

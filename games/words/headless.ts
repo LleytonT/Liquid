@@ -1,4 +1,5 @@
 import type { BranchRecord, GameHeadless } from "@/lib/shell/game-module"
+import { wordsCopy } from "@/games/words/copy"
 import seed from "@/games/words/seed.json"
 import { solveWords } from "@/games/words/solve"
 import { prepareWords } from "@/games/words/validate"
@@ -12,6 +13,7 @@ export const words: GameHeadless = {
   summary: "five letters. six guesses. the streak is the score.",
   rootBranchId: branch.id,
   themeClass: "theme-words",
+  copy: wordsCopy,
   theme: {
     background: "#f6f1e7",
     foreground: "#1f1b16",
@@ -21,7 +23,7 @@ export const words: GameHeadless = {
     visible: false,
     focus: false,
     pulse: false,
-    placeholder: "what should change?",
+    placeholder: wordsCopy.askPlaceholder,
     maxLength: 140,
     chips: CHIPS,
   },
@@ -34,7 +36,7 @@ export const words: GameHeadless = {
     },
   },
   input: {
-    hint: null,
+    hint: wordsCopy.firstRunHint,
   },
   solver: {
     run: () => solveWords(branch),

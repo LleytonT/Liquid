@@ -6,6 +6,7 @@ import { playBlip, playScaleNote, SOUND_LEAD_MS, unlockAudio } from "@/lib/shell
 import { isShellControl } from "@/lib/shell/input"
 import { feedback, guessPoints, hardModeAllows, type GradedGuess, type Mark } from "@/games/words/rules"
 import lists from "@/games/words/lists.json"
+import { wordsCopy } from "@/games/words/copy"
 import { pickAnswer, prepareWords, type WordsSnapshot } from "@/games/words/validate"
 
 const KEY_ROWS = ["qwertyuiop", "asdfghjkl", "zxcvbnm"]
@@ -34,7 +35,7 @@ function firstSecret(snapshot: WordsSnapshot): string {
   return word
 }
 
-export function WordsRenderer({ branch, onHud, onReady, registerAsk }: GameRendererProps) {
+export function WordsRenderer({ branch, onHud, onReady, registerAsk, paused = false }: GameRendererProps) {
   const snapshot = useMemo(() => prepareWords(branch), [branch])
   const valid = useRef(new Set(snapshot.lists.valid))
   const answer0 = useSyncExternalStore(
@@ -59,7 +60,9 @@ export function WordsRenderer({ branch, onHud, onReady, registerAsk }: GameRende
   const [askOpen, setAskOpen] = useState(false)
   const [pop, setPop] = useState("")
   const [poster, setPoster] = useState(false)
+  const [hintOn, setHintOn] = useState(true)
   const ready = useRef(false)
+  const pausedRef = useRef(paused)
   const actions = useRef<{ submit: () => void; type: (letter: string) => void }>({
     submit: () => {},
     type: () => {},
@@ -83,6 +86,10 @@ export function WordsRenderer({ branch, onHud, onReady, registerAsk }: GameRende
   }
 
   useEffect(() => {
+    pausedRef.current = paused
+  }, [paused])
+
+  useEffect(() => {
     if (ready.current) return
     ready.current = true
     onReady()
@@ -103,23 +110,25 @@ export function WordsRenderer({ branch, onHud, onReady, registerAsk }: GameRende
   }, [registerAsk, phase, round, used, answer, snapshot])
 
   useEffect(() => {
+    const pulsing = phase === "ended"
     onHud({
       metrics: [
-        { id: "score", label: "score", value: String(score) },
+        { id: "round", label: "round", value: String(round + 1) },
         { id: "streak", label: "streak", value: String(streak) },
+        { id: "score", label: "score", value: String(score) },
       ],
       status: snapshot.hardMode ? "hard mode" : null,
-      hint: null,
+      hint: hintOn ? wordsCopy.firstRunHint : null,
       ask: {
         visible: phase === "ended" || askOpen,
         focus: phase === "ended" || askOpen,
-        pulse: false,
-        placeholder: "what should change?",
+        pulse: pulsing,
+        placeholder: wordsCopy.askPlaceholder,
         maxLength: 140,
-        chips: CHIPS,
+        chips: pulsing ? [wordsCopy.pulseChip, ...CHIPS] : CHIPS,
       },
     })
-  }, [onHud, score, streak, phase, askOpen, snapshot.hardMode])
+  }, [onHud, score, streak, phase, askOpen, snapshot.hardMode, hintOn, round])
 
   useEffect(() => {
     if (phase !== "reveal") return
@@ -162,7 +171,7 @@ export function WordsRenderer({ branch, onHud, onReady, registerAsk }: GameRende
   }, [phase, rows, snapshot])
 
   const typeLetter = useCallback((letter: string) => {
-    if (phase !== "play" || draft.length >= snapshot.length) return
+    if (pausedRef.current || phase !== "play" || draft.length >= snapshot.length) return
     unlockAudio()
     playWood()
     setPop(letter)
@@ -172,7 +181,9 @@ export function WordsRenderer({ branch, onHud, onReady, registerAsk }: GameRende
   }, [phase, draft.length, snapshot.length])
 
   const submit = useCallback(() => {
+    if (pausedRef.current) return
     if (phase !== "play" || draft.length !== snapshot.length) return
+    setHintOn(false)
     if (!valid.current.has(draft)) {
       setNote("not in our list")
       setShake(true)
@@ -197,6 +208,7 @@ export function WordsRenderer({ branch, onHud, onReady, registerAsk }: GameRende
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      if (pausedRef.current) return
       if (event.key === "/" && !isShellControl(document.activeElement)) {
         event.preventDefault()
         unlockAudio()

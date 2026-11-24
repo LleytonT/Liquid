@@ -8,6 +8,7 @@ import type { ComponentType } from "react"
  *
  * - seed: versioned branch records. The root branch has parentId null.
  * - bible: prepare() rejects a snapshot that breaks that game's locked core.
+ * - copy: how-to-play steps, the stats line, and plain-words branch diffs.
  * - renderer: draws the running game and reports HUD metrics.
  * - input: the hint the shell shows, and listeners the renderer attaches.
  * - solver: headless proof used by `npm run solve`.
@@ -86,11 +87,46 @@ export type AskHandlers = {
   onDismiss: () => void
 }
 
+export type HowToStep = {
+  id: string
+  /** Short line under the step visual. Empty when the visual carries the words. */
+  copy: string
+}
+
+/**
+ * Player-facing strings for one game. The shell renders these and never
+ * branches on game id. Swap this module when a copy spec arrives.
+ */
+export type GameCopy = {
+  remixBlurb: string
+  askPlaceholder: string
+  /** Shown with the ask chips while the bar is pulsing. */
+  pulseChip: string
+  firstRunHint: string | null
+  hintFadeMs: number
+  howTo: (branch: BranchRecord) => readonly HowToStep[]
+  /** One HUD line. Empty string hides it. */
+  formatStats: (metrics: readonly HudMetric[]) => string
+  /**
+   * Plain words for what this branch changed, or the current tunables when
+   * there is no parent. Null hides the line. Add a label here for a new knob.
+   */
+  describeBranchDiff: (branch: BranchRecord, parent: BranchRecord | null) => string | null
+  /** Extra overlay line, for rules that are off on the root. Null hides it. */
+  overlayNote: (branch: BranchRecord) => string | null
+}
+
+export type HowToVisualProps = {
+  reducedMotion: boolean
+}
+
 export type GameRendererProps = {
   branch: BranchRecord
   onHud: (hud: HudState) => void
   onReady: () => void
   registerAsk: (handlers: AskHandlers) => void
+  /** True while the how-to overlay is open. Games must not advance. */
+  paused?: boolean
 }
 
 export type SolveLevelResult = {
@@ -108,6 +144,7 @@ export type GameHeadless = {
   rootBranchId: string
   themeClass: GameThemeClass
   theme: GameTheme
+  copy: GameCopy
   /** Ask bar before the renderer reports. The renderer replaces it via onHud. */
   ask: AskState
   seed: {

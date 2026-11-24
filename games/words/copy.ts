@@ -1,0 +1,64 @@
+import type { BranchRecord, GameCopy, HudMetric } from "@/lib/shell/game-module"
+
+/** Player-facing knob labels. Add a phrase here when a tunable should show up in the diff. */
+const TUNABLE_LABELS: Record<string, (value: number) => string | null> = {
+  guesses: (value) => `${value} guesses`,
+  timerSeconds: (value) => (value > 0 ? `timer ${value}s` : "timer off"),
+  hardMode: (value) => (value > 0 ? "hard mode on" : "hard mode off"),
+  length: (value) => `${value} letters`,
+  staggerMs: (value) => `reveal ${value} ms`,
+  roundEndMs: (value) => `round pause ${value / 1000}s`,
+}
+
+const ROOT_LINE = ["guesses", "timerSeconds"]
+
+function metric(metrics: readonly HudMetric[], id: string): string {
+  return metrics.find((item) => item.id === id)?.value ?? ""
+}
+
+export const wordsCopy: GameCopy = {
+  remixBlurb:
+    "anyone can ask for a twist. it becomes your own branch. a merge waits for the owner and a play-test.",
+  askPlaceholder: "ask for a twist. makes your branch",
+  pulseChip: "you can change this game",
+  firstRunHint: "type a word, press enter",
+  hintFadeMs: 8000,
+  howTo: (branch) => {
+    const guesses = branch.snapshot.tunables.guesses?.value ?? 6
+    return [
+      { id: "guess", copy: `guess the word in ${guesses} tries` },
+      { id: "states", copy: "" },
+      { id: "remix", copy: "anyone can ask for a twist. it becomes your own branch." },
+    ]
+  },
+  formatStats: (metrics) => {
+    if (metrics.length === 0) return ""
+    return `round ${metric(metrics, "round")} · streak ${metric(metrics, "streak")} · ${metric(metrics, "score")} pts`
+  },
+  describeBranchDiff: (branch, parent) => describeWordsDiff(branch, parent),
+  overlayNote: (branch) =>
+    branch.snapshot.tunables.hardMode?.value ? "hard mode: use every revealed hint" : null,
+}
+
+export function describeWordsDiff(branch: BranchRecord, parent: BranchRecord | null): string | null {
+  const next = branch.snapshot.tunables
+  if (!parent) {
+    const parts = ROOT_LINE.map((id) => {
+      const knob = next[id]
+      const label = TUNABLE_LABELS[id]
+      return knob && label ? label(knob.value) : null
+    }).filter((part): part is string => Boolean(part))
+    return parts.length > 0 ? parts.join(", ") : null
+  }
+  const parts: string[] = []
+  for (const [id, label] of Object.entries(TUNABLE_LABELS)) {
+    const knob = next[id]
+    const previous = parent.snapshot.tunables[id]
+    if (!knob || knob.locked) continue
+    if (!previous || previous.value !== knob.value) {
+      const phrase = label(knob.value)
+      if (phrase) parts.push(phrase)
+    }
+  }
+  return parts.length > 0 ? parts.join(", ") : null
+}

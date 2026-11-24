@@ -18,7 +18,7 @@ npm start
 
 `npm run solve` checks both games: each platformer level has a finishable path, and every Liquid Words answer is on the valid list and winnable under the current tunables.
 
-Arrow keys or WASD move. On a touch screen, use the pad at the lower right. The ask bar only keeps a plan card; nothing is built from it yet.
+Arrow keys or WASD move. On a touch screen, use the pad at the lower right. The first visit to a game opens how to play (`howto_seen_<game>` in localStorage); the ? button opens it again. The ask bar only keeps a plan card; nothing is built from it yet. A branch line under the HUD is plain words from that game's tunables.
 
 ## Game module
 

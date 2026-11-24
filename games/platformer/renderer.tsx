@@ -18,6 +18,7 @@ import { FEEL } from "@/games/platformer/feel"
 import { DT, LOCKED } from "@/games/platformer/locked"
 import { initialSim, step } from "@/games/platformer/physics"
 import { positionsAt, type RuntimeLevel, type Sim, type Vec } from "@/games/platformer/runtime"
+import { platformerCopy } from "@/games/platformer/copy"
 import { preparePlatformer } from "@/games/platformer/validate"
 
 const MOVES = new Set(["arrowleft", "arrowright", "arrowup", "arrowdown", "a", "d", "w", "s"])
@@ -48,7 +49,7 @@ function centroid(tiles: FlipTile[]): { x: number; y: number } {
   return { x: sum.x / tiles.length, y: sum.y / tiles.length }
 }
 
-export function PlatformerRenderer({ branch, onHud, onReady, registerAsk }: GameRendererProps) {
+export function PlatformerRenderer({ branch, onHud, onReady, registerAsk, paused = false }: GameRendererProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   const onHudRef = useRef(onHud)
@@ -56,6 +57,11 @@ export function PlatformerRenderer({ branch, onHud, onReady, registerAsk }: Game
   const resetRef = useRef<() => void>(() => {})
   const touchRef = useRef({ x: 0, y: 0 })
   const [replay, setReplay] = useState(false)
+  const pausedRef = useRef(paused)
+
+  useEffect(() => {
+    pausedRef.current = paused
+  }, [paused])
 
   useEffect(() => {
     onHudRef.current = onHud
@@ -85,27 +91,34 @@ export function PlatformerRenderer({ branch, onHud, onReady, registerAsk }: Game
     let last = performance.now()
     let ready = false
     let hudKey = ""
+    let hintOn = true
+    let hintAccum = 0
+    let hintMark = performance.now()
     const keys = new Set<string>()
 
     const level = () => snapshot.levels[levelIndex]
 
     const publish = () => {
       const collected = sim.coins.filter(Boolean).length
+      const pulsing = deaths >= 3 || levelsCleared > 0
       const hud = {
         metrics: [
-          { id: "deaths", label: "deaths", value: String(deaths) },
-          { id: "coins", label: "coins", value: `${collected}/${level().coins.length}` },
           { id: "level", label: "level", value: String(levelIndex + 1) },
+          { id: "levels", label: "levels", value: String(snapshot.levels.length) },
+          { id: "coins", label: "coins", value: `${collected}/${level().coins.length}` },
+          { id: "deaths", label: "deaths", value: String(deaths) },
         ],
         status: clearedAll ? "five rooms cleared" : null,
-        hint: "arrows to move",
+        hint: hintOn ? platformerCopy.firstRunHint : null,
         ask: {
           visible: true,
           focus: false,
-          pulse: deaths >= 3 || levelsCleared > 0,
-          placeholder: "what should change?",
+          pulse: pulsing,
+          placeholder: platformerCopy.askPlaceholder,
           maxLength: 140,
-          chips,
+          chips: pulsing
+            ? [platformerCopy.pulseChip, ...chips.filter((chip) => chip !== platformerCopy.pulseChip)]
+            : chips,
         },
       }
       const key = JSON.stringify(hud)
@@ -141,6 +154,7 @@ export function PlatformerRenderer({ branch, onHud, onReady, registerAsk }: Game
     resetRef.current = () => boot(0, false)
 
     const onKeyDown = (event: KeyboardEvent) => {
+      if (pausedRef.current) return
       const key = event.key.toLowerCase()
       if (!MOVES.has(key)) return
       if (isShellControl(event.target) || isShellControl(document.activeElement)) return
@@ -174,7 +188,15 @@ export function PlatformerRenderer({ branch, onHud, onReady, registerAsk }: Game
     const loop = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000)
       last = now
-      if (!sim.cleared) {
+      if (!pausedRef.current) {
+        hintAccum += now - hintMark
+        if (hintOn && hintAccum >= platformerCopy.hintFadeMs) {
+          hintOn = false
+          publish()
+        }
+      }
+      hintMark = now
+      if (!sim.cleared && !pausedRef.current) {
         acc += dt
         let steps = 0
         const typing = isShellControl(document.activeElement)
@@ -215,6 +237,7 @@ export function PlatformerRenderer({ branch, onHud, onReady, registerAsk }: Game
             publish()
           }
           if (result.events.collected.length > 0) {
+            hintOn = false
             playScaleNote()
             const got = result.events.collected.slice()
             pending.push({

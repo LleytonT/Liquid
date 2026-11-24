@@ -205,3 +205,44 @@ function hexAlpha(hex: string, alpha: number): string {
 }
 
 export const VISUAL_LEAD_MS = SOUND_LEAD_MS
+
+/** The same sprites the level canvas paints, for how-to-play and other chrome. */
+export function drawPlayerSprite(ctx: CanvasRenderingContext2D, x: number, y: number, size = 28): void {
+  paintTile(ctx, x, y, size, 1, PALETTE.player, 0)
+}
+
+export function drawEnemySprite(ctx: CanvasRenderingContext2D, x: number, y: number, radius = 8): void {
+  ctx.save()
+  ctx.fillStyle = PALETTE.shadow
+  ctx.beginPath()
+  ctx.arc(x + 2, y + 2, radius, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = PALETTE.enemy
+  ctx.beginPath()
+  ctx.arc(x, y, radius, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.lineWidth = 3
+  ctx.strokeStyle = PALETTE.ink
+  ctx.stroke()
+  ctx.restore()
+}
+
+export function drawCoinSprite(ctx: CanvasRenderingContext2D, x: number, y: number, radius = 12): void {
+  ctx.save()
+  ctx.fillStyle = PALETTE.shadow
+  ctx.beginPath()
+  ctx.arc(x + 2, y + 2, radius, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = PALETTE.coin
+  ctx.beginPath()
+  ctx.arc(x, y, radius, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.lineWidth = 3
+  ctx.strokeStyle = PALETTE.ink
+  ctx.stroke()
+  ctx.restore()
+}
+
+export function drawSafeSprite(ctx: CanvasRenderingContext2D, x: number, y: number, size = 32): void {
+  paintTile(ctx, x, y, size, 1, PALETTE.safe, 0, true)
+}

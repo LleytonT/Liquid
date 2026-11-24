@@ -1,6 +1,7 @@
 import type { GameHeadless } from "@/lib/shell/game-module"
 import seed from "@/games/platformer/seed.json"
 import type { BranchRecord } from "@/lib/shell/game-module"
+import { platformerCopy } from "@/games/platformer/copy"
 import { preparePlatformer } from "@/games/platformer/validate"
 import { solvePlatformer } from "@/games/platformer/solve"
 
@@ -12,6 +13,7 @@ export const platformer: GameHeadless = {
   summary: "five rooms. deaths are the score.",
   rootBranchId: branch.id,
   themeClass: "theme-platformer",
+  copy: platformerCopy,
   theme: {
     background: "#F7F7FF",
     foreground: "#1a1a2e",
@@ -21,7 +23,7 @@ export const platformer: GameHeadless = {
     visible: true,
     focus: false,
     pulse: false,
-    placeholder: "what should change?",
+    placeholder: platformerCopy.askPlaceholder,
     maxLength: 140,
     chips: ["slow the fast dots", "add a safe zone", "widen this gap"],
   },
@@ -34,7 +36,7 @@ export const platformer: GameHeadless = {
     },
   },
   input: {
-    hint: "arrows to move",
+    hint: platformerCopy.firstRunHint,
   },
   solver: {
     run: () => solvePlatformer(branch),
