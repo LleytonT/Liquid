@@ -1,6 +1,6 @@
 # liquid
 
-A shelf of two games. `/` opens `seed`, five original rooms: a red square, blue dots, coins, and green safe ground. Deaths are the score. [Liquid Words](http://127.0.0.1:38471/b/words) is five letters and six guesses. Its word lists are derived from [SCOWL 2020.12.07](https://wordlist.aspell.net/); see `games/words/LICENSE-SCOWL.txt`.
+A shelf of two games. `/` is the landing. [Seed](http://127.0.0.1:38471/b/seed) is five original rooms: a red square, blue dots, coins, and green safe ground. Deaths are the score. [Liquid Words](http://127.0.0.1:38471/b/words) is five letters and six guesses. Its word lists are derived from [SCOWL 2020.12.07](https://wordlist.aspell.net/); see `games/words/LICENSE-SCOWL.txt`. Direct play stays on `/b/seed` and `/b/words`.
 
 ## Run
 
@@ -30,7 +30,7 @@ The shell is game-agnostic. A game implements `GameModule` in `lib/shell/game-mo
 - **input** — hint text, plus listeners the renderer attaches
 - **solver** — headless proof used by `npm run solve`
 
-Register the headless module in `games/catalog.ts` and the renderer in `games/renderers.tsx`. The shelf lists that registry. `/` plays the first game's root branch.
+Register the headless module in `games/catalog.ts` and the renderer in `games/renderers.tsx`. The shelf and the landing list that registry. `/b/<rootBranchId>` plays a game directly.
 
 Tile flip (`planTileFlip` in `lib/shell/tile-flip.ts`) and synthesized sound (`lib/shell/audio.ts`) are shell primitives. The platformer calls them; it does not own them.
 

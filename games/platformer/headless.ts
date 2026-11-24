@@ -11,8 +11,9 @@ export const platformer: GameHeadless = {
   title: "seed",
   summary: "five rooms. deaths are the score.",
   rootBranchId: branch.id,
+  themeClass: "theme-platformer",
   theme: {
-    background: "linear-gradient(180deg, #b4b5fe 0%, #d9d4ff 100%)",
+    background: "#F7F7FF",
     foreground: "#1a1a2e",
     vignette: "radial-gradient(ellipse at center, transparent 42%, rgba(26, 26, 46, 0.28) 100%)",
   },

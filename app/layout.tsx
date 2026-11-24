@@ -17,7 +17,7 @@ const fraunces = Fraunces({
 
 export const metadata: Metadata = {
   title: "liquid",
-  description: "A shelf of small games. Play starts immediately.",
+  description: "Play a game, ask for a twist, and it becomes a branch on a public remix tree.",
 }
 
 export default function RootLayout({ children }: { children: ReactNode }) {

@@ -58,6 +58,9 @@ export type GameTheme = {
   vignette: string
 }
 
+/** Class that scopes this game's shadcn tokens. Landing cards and the play shell both use it. */
+export type GameThemeClass = "theme-platformer" | "theme-words"
+
 /** Ask bar, owned by the shell and driven by the game. */
 export type AskState = {
   visible: boolean
@@ -103,6 +106,7 @@ export type GameHeadless = {
   title: string
   summary: string
   rootBranchId: string
+  themeClass: GameThemeClass
   theme: GameTheme
   /** Ask bar before the renderer reports. The renderer replaces it via onHud. */
   ask: AskState

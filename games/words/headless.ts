@@ -11,6 +11,7 @@ export const words: GameHeadless = {
   title: "liquid words",
   summary: "five letters. six guesses. the streak is the score.",
   rootBranchId: branch.id,
+  themeClass: "theme-words",
   theme: {
     background: "#f6f1e7",
     foreground: "#1f1b16",
