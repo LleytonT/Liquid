@@ -26,6 +26,27 @@ export function resetScale(): void {
   scaleStep = 0
 }
 
+const muteListeners = new Set<() => void>()
+
+export function subscribeMute(listener: () => void): () => void {
+  muteListeners.add(listener)
+  return () => muteListeners.delete(listener)
+}
+
+export function getMuted(): boolean {
+  if (typeof window === "undefined") return false
+  return window.localStorage.getItem("liquid-muted") === "1"
+}
+
+export function setMuted(muted: boolean): void {
+  window.localStorage.setItem("liquid-muted", muted ? "1" : "0")
+  muteListeners.forEach((listener) => listener())
+}
+
+function silenced(): boolean {
+  return getMuted()
+}
+
 export function playBlip(options: {
   frequency: number
   type?: OscillatorType
@@ -33,6 +54,7 @@ export function playBlip(options: {
   duration?: number
   slideTo?: number
 }): void {
+  if (silenced()) return
   const ctx = audio()
   if (!ctx || ctx.state !== "running") return
   const t = ctx.currentTime
@@ -77,6 +99,7 @@ function tone(
 
 /** Next note of the pentatonic scale. */
 export function playScaleNote(): void {
+  if (silenced()) return
   const ctx = audio()
   if (!ctx || ctx.state !== "running") return
   const frequency = PENTATONIC[scaleStep % PENTATONIC.length]
@@ -86,6 +109,7 @@ export function playScaleNote(): void {
 
 /** Soft low thump. */
 export function playThump(): void {
+  if (silenced()) return
   const ctx = audio()
   if (!ctx || ctx.state !== "running") return
   const t = ctx.currentTime
@@ -105,6 +129,7 @@ export function playThump(): void {
 
 /** Short major chord. */
 export function playChord(): void {
+  if (silenced()) return
   const ctx = audio()
   if (!ctx || ctx.state !== "running") return
   for (const frequency of [261.63, 329.63, 392]) {

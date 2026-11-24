@@ -78,7 +78,7 @@ export function HowToOverlay({
               />
             ))}
           </div>
-          <Button type="button" className="h-11 px-4" onClick={advance}>
+          <Button type="button" variant="game" onClick={advance}>
             {last ? "play" : "next"}
           </Button>
         </div>

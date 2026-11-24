@@ -1,10 +1,18 @@
 import type { ReactNode } from "react"
 import type { GameTheme } from "@/lib/shell/game-module"
 
-export function Atmosphere({ children, theme }: { children: ReactNode; theme?: GameTheme }) {
+export function Atmosphere({
+  children,
+  theme,
+  className,
+}: {
+  children: ReactNode
+  theme?: GameTheme
+  className?: string
+}) {
   return (
     <div
-      className="atmosphere relative min-h-dvh"
+      className={`atmosphere relative min-h-dvh ${className ?? ""}`}
       style={theme ? { background: theme.background, color: theme.foreground } : undefined}
     >
       <div className="grain" aria-hidden="true" />

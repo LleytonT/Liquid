@@ -1,14 +1,20 @@
 "use client"
 
-import { useCallback, useRef, useState, useSyncExternalStore } from "react"
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react"
 import Link from "next/link"
-import { CircleHelp } from "lucide-react"
+import { CircleHelp, GitBranch, Volume2, VolumeX } from "lucide-react"
 import { AskBar } from "@/components/ask-bar"
+import { BranchBrowser } from "@/components/branch-browser"
 import { HowToOverlay } from "@/components/howto/how-to-overlay"
 import { PlanCard } from "@/components/plan-card"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { renderers } from "@/games/renderers"
 import { gameById } from "@/games/catalog"
+import { getMuted, setMuted, subscribeMute } from "@/lib/shell/audio"
+import { BRANCH_CREATED_EVENT, BRANCH_TIP_KEY } from "@/lib/shell/branch-created"
 import type { AskHandlers, BranchRecord, HudState } from "@/lib/shell/game-module"
 import { Atmosphere } from "@/lib/shell/atmosphere"
 
@@ -64,11 +70,43 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
     askHandlers.current = handlers
   }, [])
 
-  const closeHowto = useCallback(() => {
+  const closeHowto = () => {
     window.localStorage.setItem(seenKey(gameId), "1")
     window.dispatchEvent(new Event("liquid-howto"))
     setForcedGame(null)
-  }, [gameId])
+  }
+
+  const [treeOpen, setTreeOpen] = useState(false)
+  const [tipOpen, setTipOpen] = useState(false)
+  const muted = useSyncExternalStore(subscribeMute, getMuted, () => false)
+
+  useEffect(() => {
+    const theme = game?.themeClass
+    if (!theme) return
+    const root = document.documentElement
+    root.classList.remove("theme-shell", "theme-platformer", "theme-words")
+    root.classList.add(theme)
+    return () => root.classList.remove(theme)
+  }, [game?.themeClass])
+
+  useEffect(() => {
+    const onCreated = () => {
+      if (window.localStorage.getItem(BRANCH_TIP_KEY) === "1") return
+      setTipOpen(true)
+    }
+    window.addEventListener(BRANCH_CREATED_EVENT, onCreated)
+    return () => window.removeEventListener(BRANCH_CREATED_EVENT, onCreated)
+  }, [])
+
+  useEffect(() => {
+    if (!tipOpen) return
+    const dismiss = () => {
+      window.localStorage.setItem(BRANCH_TIP_KEY, "1")
+      setTipOpen(false)
+    }
+    window.addEventListener("pointerdown", dismiss)
+    return () => window.removeEventListener("pointerdown", dismiss)
+  }, [tipOpen])
 
   if (!game || !branch || !Renderer) {
     return (
@@ -98,33 +136,70 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
   const stats = game.copy.formatStats(view.metrics)
 
   return (
-    <Atmosphere theme={game.theme}>
-      <header data-shell-control className="flex h-14 items-center gap-3 px-4">
+    <Atmosphere theme={game.theme} className={game.themeClass}>
+      <header data-shell-control className="flex h-14 items-center gap-3 overflow-hidden px-4">
         <div className="flex min-w-0 items-center gap-2">
           <Link href="/" className="truncate text-[14px] font-bold tracking-tight">
             {game.title}
           </Link>
-          <span className="branch-chip label shrink-0 text-[12px] font-bold">{branchLabel(branch)}</span>
+          <Badge variant="secondary" className="label shrink-0">
+            {branchLabel(branch)}
+          </Badge>
         </div>
         <p className="tabular min-w-0 flex-1 truncate text-center text-[14px] font-bold" aria-live="polite">
           {stats}
         </p>
         {view.status ? <p className="label hidden text-[12px] font-bold sm:block">{view.status}</p> : null}
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          aria-label="how to play"
-          onClick={() => {
-            setHowtoSession((current) => current + 1)
-            setForcedGame(gameId)
-          }}
-        >
-          <CircleHelp />
-        </Button>
-        <Link href="/shelf" className="label hidden text-[12px] font-bold underline sm:inline">
-          shelf
-        </Link>
+        <div className="flex shrink-0 items-center">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="how to play"
+            onClick={() => {
+              setHowtoSession((current) => current + 1)
+              setForcedGame(gameId)
+            }}
+          >
+            <CircleHelp />
+          </Button>
+          <TooltipProvider>
+            <Tooltip
+              open={tipOpen}
+              onOpenChange={(next) => {
+                if (!next) {
+                  window.localStorage.setItem(BRANCH_TIP_KEY, "1")
+                  setTipOpen(false)
+                }
+              }}
+            >
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="remix tree"
+                    onClick={() => setTreeOpen(true)}
+                  >
+                    <GitBranch />
+                  </Button>
+                }
+              />
+              <TooltipContent>this is your branch. share it or keep twisting</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label={muted ? "unmute" : "mute"}
+            aria-pressed={muted}
+            onClick={() => setMuted(!muted)}
+          >
+            {muted ? <VolumeX /> : <Volume2 />}
+          </Button>
+        </div>
       </header>
       {diff ? (
         <p data-branch-diff className="label px-4 pb-1 text-[14px] font-medium text-foreground/80">
@@ -171,6 +246,12 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
         note={game.copy.overlayNote(branch)}
         onClose={closeHowto}
       />
+      <Sheet open={treeOpen} onOpenChange={setTreeOpen}>
+        <SheetContent>
+          <SheetTitle className="label pr-8 text-[12px] font-bold">remix tree</SheetTitle>
+          <BranchBrowser gameId={game.id} />
+        </SheetContent>
+      </Sheet>
     </Atmosphere>
   )
 }

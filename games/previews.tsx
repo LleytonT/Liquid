@@ -32,7 +32,7 @@ const PREVIEW_LEVEL: LevelDef = {
   enemies: [
     {
       id: "drift",
-      speed: 90,
+      speed: 80,
       phase: 0,
       mode: "pingpong",
       points: [
@@ -42,8 +42,8 @@ const PREVIEW_LEVEL: LevelDef = {
     },
     {
       id: "cross",
-      speed: 70,
-      phase: 40,
+      speed: 60,
+      phase: 0,
       mode: "pingpong",
       points: [
         { x: 8, y: 3.5 },

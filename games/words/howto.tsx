@@ -42,14 +42,25 @@ const SAMPLE = [
 ]
 
 export function StatesStep({ reducedMotion }: HowToVisualProps) {
-  const [count, setCount] = useState(reducedMotion ? SAMPLE.length : 0)
+  const [count, setCount] = useState(SAMPLE.length)
+  const [flipping, setFlipping] = useState(false)
 
   useEffect(() => {
     if (reducedMotion) return
-    const timer = window.setInterval(() => {
-      setCount((current) => (current >= SAMPLE.length ? 0 : current + 1))
-    }, 320)
-    return () => window.clearInterval(timer)
+    let timer = 0
+    const play = () => {
+      setFlipping(true)
+      setCount(0)
+      let shown = 0
+      const step = () => {
+        shown += 1
+        setCount(shown)
+        timer = window.setTimeout(shown < SAMPLE.length ? step : play, shown < SAMPLE.length ? 280 : 1800)
+      }
+      timer = window.setTimeout(step, 280)
+    }
+    timer = window.setTimeout(play, 1800)
+    return () => window.clearTimeout(timer)
   }, [reducedMotion])
 
   return (
@@ -61,7 +72,7 @@ export function StatesStep({ reducedMotion }: HowToVisualProps) {
             <div key={cell.letter} className="flex w-11 flex-col items-center gap-1">
               <div
                 data-mark={shown ? cell.mark || "empty" : "empty"}
-                className={`lw-tile ${shown ? cell.mark : ""} ${shown && cell.mark ? "flip" : ""}`}
+                className={`lw-tile ${shown ? cell.mark : ""} ${flipping && shown && cell.mark ? "flip" : ""}`}
                 style={{ width: 44, height: 44, fontSize: 22 }}
               >
                 {shown ? cell.letter : ""}

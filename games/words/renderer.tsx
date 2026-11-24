@@ -1,7 +1,9 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
+import { toast } from "sonner"
 import type { GameRendererProps } from "@/lib/shell/game-module"
+import { Button } from "@/components/ui/button"
 import { playBlip, playScaleNote, SOUND_LEAD_MS, unlockAudio } from "@/lib/shell/audio"
 import { isShellControl } from "@/lib/shell/input"
 import { feedback, guessPoints, hardModeAllows, type GradedGuess, type Mark } from "@/games/words/rules"
@@ -164,11 +166,15 @@ export function WordsRenderer({ branch, onHud, onReady, registerAsk, paused = fa
           setStats(`x/${snapshot.guesses} · +0 · streak 0`)
         }
         setPoster(true)
+        toast.custom(
+          () => <div className="answer-pill">{answer}</div>,
+          { duration: 1200, unstyled: true },
+        )
         timers.push(window.setTimeout(() => setPhase("ended"), snapshot.roundEndMs))
       }, finished),
     )
     return () => timers.forEach((timer) => window.clearTimeout(timer))
-  }, [phase, rows, snapshot])
+  }, [phase, rows, snapshot, answer])
 
   const typeLetter = useCallback((letter: string) => {
     if (pausedRef.current || phase !== "play" || draft.length >= snapshot.length) return
@@ -185,7 +191,7 @@ export function WordsRenderer({ branch, onHud, onReady, registerAsk, paused = fa
     if (phase !== "play" || draft.length !== snapshot.length) return
     setHintOn(false)
     if (!valid.current.has(draft)) {
-      setNote("not in our list")
+      toast("not in word list", { duration: 1200 })
       setShake(true)
       window.setTimeout(() => setShake(false), snapshot.shakeMs)
       return
@@ -290,34 +296,37 @@ export function WordsRenderer({ branch, onHud, onReady, registerAsk, paused = fa
         ))}
       </div>
       {poster ? (
-        <div className="lw-poster">
-          <p className={`lw-answer ${won ? "win" : "loss"}`}>{answer}</p>
-          <p className="tabular text-sm">{stats}</p>
-        </div>
+        <p className="tabular text-[14px] font-bold">{stats}</p>
       ) : (
         <div className="lw-keys">
           {KEY_ROWS.map((row, rowIndex) => (
             <div className="lw-keyrow" key={row}>
               {rowIndex === 2 ? (
-                <button type="button" className="lw-key wide" onClick={submit}>
+                <Button type="button" variant="game" className="lw-key wide" onClick={submit}>
                   enter
-                </button>
+                </Button>
               ) : null}
               {row.split("").map((letter) => (
-                <button
+                <Button
                   key={letter}
                   type="button"
+                  variant="game"
                   data-mark={best.get(letter) ?? "empty"}
                   className={`lw-key ${best.get(letter) ?? ""} ${pop === letter ? "pop" : ""}`}
                   onClick={() => typeLetter(letter)}
                 >
                   {letter}
-                </button>
+                </Button>
               ))}
               {rowIndex === 2 ? (
-                <button type="button" className="lw-key wide" onClick={() => setDraft((current) => current.slice(0, -1))}>
+                <Button
+                  type="button"
+                  variant="game"
+                  className="lw-key wide"
+                  onClick={() => setDraft((current) => current.slice(0, -1))}
+                >
                   delete
-                </button>
+                </Button>
               ) : null}
             </div>
           ))}
