@@ -11,6 +11,7 @@ export const howToVisuals: Record<string, Record<string, ComponentType<HowToVisu
   platformer: {
     move: MoveStep,
     dodge: DodgeStep,
+    deaths: DodgeStep,
     goal: GoalStep,
     remix: RemixVisual,
   },

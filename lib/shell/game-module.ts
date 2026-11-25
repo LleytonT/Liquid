@@ -75,14 +75,16 @@ export type AskState = {
 export type HudState = {
   metrics: HudMetric[]
   status: string | null
-  /** Ghost hint. Null hides it. The shell shows a non-null hint for 5s. */
+  /** Ghost hint. Null hides it. The shell shows a non-null hint for 5s or until the first input. */
   hint: string | null
+  /** Persistent one-line objective. Null or omitted hides it. */
+  goal?: string | null
   ask: AskState
 }
 
 export type AskHandlers = {
-  /** Enter in an empty ask. Words uses this to start the next round. */
-  onEmptyEnter: () => void
+  /** Enter in an empty ask. Return true when the game handled it. */
+  onEmptyEnter: () => boolean
   /** Escape, or the ask closing without a submit. */
   onDismiss: () => void
 }
@@ -125,8 +127,12 @@ export type GameRendererProps = {
   onHud: (hud: HudState) => void
   onReady: () => void
   registerAsk: (handlers: AskHandlers) => void
-  /** True while the how-to overlay is open. Games must not advance. */
+  /** True while a pause or how-to overlay is open. Games must not advance. */
   paused?: boolean
+  /** Tunables already applied for this visit. Undefined until the next respawn or round. */
+  tweaks?: Record<string, number>
+  /** Called when the platformer respawns, or when words starts another round. */
+  onLife?: () => void
 }
 
 export type SolveLevelResult = {

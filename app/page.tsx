@@ -4,7 +4,7 @@ import { catalog } from "@/games/catalog"
 
 export const metadata: Metadata = {
   title: "liquid",
-  description: "Play a game, ask for a twist, and it becomes a branch on a public remix tree.",
+  description: "Small games you play, then change by asking. Every change becomes a new version anyone can play.",
 }
 
 export default function Page() {

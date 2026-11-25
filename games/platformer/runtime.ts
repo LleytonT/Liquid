@@ -252,8 +252,10 @@ export function enemyPosition(enemy: RuntimeEnemy, frame: number): Vec {
   return pointAlong(enemy.poly, distance)
 }
 
-export function positionsAt(level: RuntimeLevel, frame: number): Vec[] {
-  return level.enemies.map((enemy) => enemyPosition(enemy, frame))
+export function positionsAt(level: RuntimeLevel, frame: number, speedScale = 1): Vec[] {
+  return level.enemies.map((enemy) =>
+    enemyPosition(speedScale === 1 ? enemy : { ...enemy, speed: enemy.speed * speedScale }, frame),
+  )
 }
 
 export function isBlocked(level: RuntimeLevel, x: number, y: number): boolean {
@@ -353,4 +355,11 @@ export function createSim(level: RuntimeLevel): Sim {
     checkpoint: { x: level.spawn.x, y: level.spawn.y },
     cleared: false,
   }
+}
+
+/** Coins currently held. The HUD and the exit both read this array. */
+export function collectedCount(coins: readonly boolean[]): number {
+  let count = 0
+  for (const coin of coins) if (coin) count += 1
+  return count
 }

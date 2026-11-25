@@ -109,8 +109,8 @@ function PlayCard({ card }: { card: LandingCard }) {
 
 const STEPS = [
   { id: "play", body: "open a branch. anyone can play." },
-  { id: "prompt", body: "ask in plain words. sign in only to ask." },
-  { id: "remix", body: "the ask becomes your branch on the tree." },
+  { id: "prompt", body: "ask in plain words." },
+  { id: "remix", body: "each version shows on the remix tree." },
 ]
 
 export function Landing({ cards }: { cards: readonly LandingCard[] }) {
@@ -128,11 +128,15 @@ export function Landing({ cards }: { cards: readonly LandingCard[] }) {
   return (
     <main className="theme-shell mx-auto flex min-h-dvh w-full max-w-5xl flex-col px-6 py-8 sm:py-12">
       <header className="max-w-2xl">
-        <p className="label text-[12px] font-bold text-muted-foreground">liquid games</p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="label text-[12px] font-bold text-muted-foreground">liquid games</p>
+          <Link href="/shelf" data-shelf className="label text-[12px] font-bold underline">
+            shelf
+          </Link>
+        </div>
         <h1 className="mt-3 text-[40px] leading-none font-extrabold tracking-tight">liquid</h1>
         <p className="mt-4 text-[16px] leading-6 font-medium">
-          every game is liquid. you play, you ask for a change, and that ask becomes a branch on a public
-          tree. a merge lands only after the owner accepts and a play-test passes.
+          small games you play, then change by asking. every change becomes a new version anyone can play.
         </p>
       </header>
       <div className="mt-8 grid gap-4 sm:grid-cols-2 sm:gap-6">
@@ -140,17 +144,23 @@ export function Landing({ cards }: { cards: readonly LandingCard[] }) {
           <PlayCard key={card.id} card={card} />
         ))}
       </div>
-      <section aria-label="how liquid works" className="mt-8 grid items-end gap-6 sm:mt-10 lg:grid-cols-[1fr_auto]">
-        <ol className="grid gap-4 sm:grid-cols-3">
-          {STEPS.map((step, index) => (
-            <li key={step.id}>
-              <p className="label text-[12px] font-bold">
-                {index + 1} {step.id}
-              </p>
-              <p className="mt-1 text-[14px] leading-5 font-medium text-foreground/75">{step.body}</p>
-            </li>
-          ))}
-        </ol>
+      <section aria-label="how remixing works" className="mt-8 grid items-end gap-6 sm:mt-10 lg:grid-cols-[1fr_auto]">
+        <div>
+          <h2 className="label text-[12px] font-bold">how remixing works</h2>
+          <ol className="mt-3 grid gap-4 sm:grid-cols-3">
+            {STEPS.map((step, index) => (
+              <li key={step.id}>
+                <p className="label text-[12px] font-bold">
+                  {index + 1} {step.id}
+                </p>
+                <p className="mt-1 text-[14px] leading-5 font-medium text-foreground/75">{step.body}</p>
+              </li>
+            ))}
+          </ol>
+          <p className="mt-4 text-[14px] leading-5 font-medium text-foreground/75">
+            a merge waits for the owner and a play-test.
+          </p>
+        </div>
         <figure>
           <RemixTree />
           <figcaption className="label mt-1 text-[12px] font-bold text-muted-foreground">remix tree</figcaption>

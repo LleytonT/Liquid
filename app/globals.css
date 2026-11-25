@@ -275,6 +275,27 @@
   padding: 0.25rem 1rem 0.5rem;
 }
 
+.words-preview {
+  container-type: inline-size;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  overflow: hidden;
+}
+
+.words-preview .lw-row {
+  max-width: 100%;
+  gap: min(6px, 1.5cqi);
+}
+
+.words-preview .lw-tile {
+  --lw-tile: min(46px, calc((100cqi - 8px - 4 * min(6px, 1.5cqi)) / 5));
+  width: var(--lw-tile);
+  height: var(--lw-tile);
+  font-size: calc(var(--lw-tile) * 0.48);
+}
+
 .lw-board {
   display: grid;
   gap: 6px;
@@ -293,12 +314,12 @@
 .lw-tile {
   position: relative;
   display: grid;
-  width: 62px;
-  height: 62px;
+  width: var(--lw-tile, 62px);
+  height: var(--lw-tile, 62px);
   place-items: center;
   border-radius: 4px;
   font-family: var(--font-fraunces), serif;
-  font-size: 32px;
+  font-size: calc(var(--lw-tile, 62px) * 0.516);
   font-weight: 700;
   text-transform: uppercase;
   color: #1f1b16;

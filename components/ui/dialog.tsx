@@ -55,7 +55,7 @@ function DialogContent({ className, children, ...props }: DialogPrimitive.Popup.
 
 function DialogDismiss({ className }: { className?: string }) {
   return (
-    <DialogClose aria-label="close" className={className}>
+    <DialogClose aria-label="close" data-howto-close className={className}>
       <X className="size-4" />
     </DialogClose>
   )

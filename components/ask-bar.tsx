@@ -21,11 +21,12 @@ export function AskBar({
   pulse: boolean
   focus: boolean
   onSubmit: (ask: string) => void
-  onEmptyEnter: () => void
+  onEmptyEnter: () => boolean
   onDismiss: () => void
   note?: string
 }) {
   const [value, setValue] = useState("")
+  const [emptyHint, setEmptyHint] = useState("")
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -40,9 +41,10 @@ export function AskBar({
         event.preventDefault()
         const ask = value.trim()
         if (!ask) {
-          onEmptyEnter()
+          if (!onEmptyEnter()) setEmptyHint("describe a twist first")
           return
         }
+        setEmptyHint("")
         if (ask.length > maxLength) return
         onSubmit(ask)
       }}
@@ -59,7 +61,10 @@ export function AskBar({
           placeholder={placeholder}
           autoComplete="off"
           className="h-10 bg-white/80 text-base md:text-sm"
-          onChange={(event) => setValue(event.target.value.slice(0, maxLength))}
+          onChange={(event) => {
+            setEmptyHint("")
+            setValue(event.target.value.slice(0, maxLength))
+          }}
           onKeyDown={(event) => {
             if (event.key === "Escape") {
               event.preventDefault()
@@ -72,6 +77,11 @@ export function AskBar({
           ask
         </Button>
       </div>
+      {emptyHint ? (
+        <p className="text-[12px] leading-4 font-medium text-foreground" role="status">
+          {emptyHint}
+        </p>
+      ) : null}
       {note ? <p className="text-[12px] leading-4 font-medium text-foreground/70">{note}</p> : null}
       <div className="flex flex-wrap gap-2">
         {chips.map((chip) => (
@@ -81,7 +91,10 @@ export function AskBar({
             variant="outline"
             size="sm"
             className="bg-white/70"
-            onClick={() => setValue(chip.slice(0, maxLength))}
+            onClick={() => {
+              setEmptyHint("")
+              setValue(chip.slice(0, maxLength))
+            }}
           >
             {chip}
           </Button>

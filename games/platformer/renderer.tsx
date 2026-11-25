@@ -17,8 +17,8 @@ import { drawFrame, type GhostPath } from "@/games/platformer/draw"
 import { FEEL } from "@/games/platformer/feel"
 import { DT, LOCKED } from "@/games/platformer/locked"
 import { initialSim, step } from "@/games/platformer/physics"
-import { positionsAt, type RuntimeLevel, type Sim, type Vec } from "@/games/platformer/runtime"
-import { platformerCopy } from "@/games/platformer/copy"
+import { collectedCount, positionsAt, type RuntimeLevel, type Sim, type Vec } from "@/games/platformer/runtime"
+import { PLATFORMER_GOAL, PLATFORMER_TWEAK_CHIPS, platformerCopy } from "@/games/platformer/copy"
 import { preparePlatformer } from "@/games/platformer/validate"
 
 const MOVES = new Set(["arrowleft", "arrowright", "arrowup", "arrowdown", "a", "d", "w", "s"])
@@ -49,7 +49,15 @@ function centroid(tiles: FlipTile[]): { x: number; y: number } {
   return { x: sum.x / tiles.length, y: sum.y / tiles.length }
 }
 
-export function PlatformerRenderer({ branch, onHud, onReady, registerAsk, paused = false }: GameRendererProps) {
+export function PlatformerRenderer({
+  branch,
+  onHud,
+  onReady,
+  registerAsk,
+  paused = false,
+  tweaks,
+  onLife,
+}: GameRendererProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   const onHudRef = useRef(onHud)
@@ -63,11 +71,15 @@ export function PlatformerRenderer({ branch, onHud, onReady, registerAsk, paused
     action: "next" | "replay"
   } | null>(null)
   const pausedRef = useRef(paused)
+  const tweaksRef = useRef(tweaks)
+  const onLifeRef = useRef(onLife)
   const skipClearRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
     pausedRef.current = paused
-  }, [paused])
+    tweaksRef.current = tweaks
+    onLifeRef.current = onLife
+  }, [paused, tweaks, onLife])
 
   useEffect(() => {
     onHudRef.current = onHud
@@ -83,16 +95,16 @@ export function PlatformerRenderer({ branch, onHud, onReady, registerAsk, paused
     let sim: Sim = initialSim(snapshot.levels[0])
     let flips = new Map<string, PlannedFlip>()
     let flipStart = performance.now()
-    let hiddenCoins: boolean[] = []
     let trails: Vec[][] = []
     let ghosts: GhostPath[] = []
     let attempt: Vec[] = []
     let flashUntil = 0
+    let flashTone: "hurt" | "clear" = "hurt"
     let holdUntil = 0
     let pending: { due: number; run: () => void }[] = []
     let clearedAll = false
     let levelsCleared = 0
-    let chips = ["slow the fast dots", "add a safe zone", "widen this gap"]
+    let chips: string[] = [...PLATFORMER_TWEAK_CHIPS]
     let acc = 0
     let last = performance.now()
     let clearTimer = 0
@@ -101,20 +113,22 @@ export function PlatformerRenderer({ branch, onHud, onReady, registerAsk, paused
     let hintOn = true
     let hintAccum = 0
     let hintMark = performance.now()
+    let youUntil = 0
+    let youArmed = false
     const keys = new Set<string>()
 
     const level = () => snapshot.levels[levelIndex]
 
     const publish = () => {
-      const collected = sim.coins.filter(Boolean).length
       const pulsing = deaths >= 3 || levelsCleared > 0
       const hud = {
         metrics: [
           { id: "level", label: "level", value: String(levelIndex + 1) },
           { id: "levels", label: "levels", value: String(snapshot.levels.length) },
-          { id: "coins", label: "coins", value: `${collected}/${level().coins.length}` },
+          { id: "coins", label: "coins", value: `${collectedCount(sim.coins)}/${level().coins.length}` },
           { id: "deaths", label: "deaths", value: String(deaths) },
         ],
+        goal: PLATFORMER_GOAL,
         status: clearedAll ? "five rooms cleared" : null,
         hint: hintOn ? platformerCopy.firstRunHint : null,
         ask: {
@@ -139,14 +153,15 @@ export function PlatformerRenderer({ branch, onHud, onReady, registerAsk, paused
       if (!keepDeaths) {
         deaths = 0
         levelsCleared = 0
-        chips = ["slow the fast dots", "add a safe zone", "widen this gap"]
+        chips = [...PLATFORMER_TWEAK_CHIPS]
       }
       sim = initialSim(snapshot.levels[index])
       const tiles = flipTiles(snapshot.levels[index])
       flips = new Map(planTileFlip(tiles, centroid(tiles)).map((tile) => [tile.id, tile]))
       flipStart = performance.now()
-      hiddenCoins = snapshot.levels[index].coins.map(() => false)
       trails = snapshot.levels[index].enemies.map(() => [])
+      youArmed = false
+      youUntil = 0
       attempt = []
       flashUntil = 0
       holdUntil = 0
@@ -174,6 +189,10 @@ export function PlatformerRenderer({ branch, onHud, onReady, registerAsk, paused
       if (isShellControl(event.target) || isShellControl(document.activeElement)) return
       event.preventDefault()
       unlockAudio()
+      if (hintOn) {
+        hintOn = false
+        publish()
+      }
       keys.add(key)
     }
     const onKeyUp = (event: KeyboardEvent) => {
@@ -203,16 +222,27 @@ export function PlatformerRenderer({ branch, onHud, onReady, registerAsk, paused
       const dt = Math.min(0.05, (now - last) / 1000)
       last = now
       if (!pausedRef.current) {
+        if (!youArmed) {
+          youArmed = true
+          youUntil = now + FEEL.youMarkMs
+        }
         hintAccum += now - hintMark
         if (hintOn && hintAccum >= platformerCopy.hintFadeMs) {
           hintOn = false
           publish()
+        }
+        if (touchRef.current.x !== 0 || touchRef.current.y !== 0) {
+          if (hintOn) {
+            hintOn = false
+            publish()
+          }
         }
       }
       hintMark = now
       if (!sim.cleared && !pausedRef.current) {
         acc += dt
         let steps = 0
+        let hudDirty = false
         const typing = isShellControl(document.activeElement)
         while (acc >= DT && steps < 5 && !sim.cleared) {
           acc -= DT
@@ -226,16 +256,21 @@ export function PlatformerRenderer({ branch, onHud, onReady, registerAsk, paused
             if (keys.has("arrowdown") || keys.has("s")) y += 1
           }
           const beforeAlive = sim.alive
-          const result = step(sim, { x, y }, level(), snapshot.playerSpeed)
-          attempt.push({ x: result.sim.x, y: result.sim.y })
+          const live = tweaksRef.current
+          const result = step(
+            sim,
+            { x, y },
+            level(),
+            live?.playerSpeed ?? snapshot.playerSpeed,
+            live?.enemySpeedScale ?? 1,
+          )
+          sim = result.sim
+          attempt.push({ x: sim.x, y: sim.y })
           if (result.events.died) {
             deaths += 1
-            chips =
-              deaths >= 6
-                ? ["slow the fast dots", "add a safe zone", "widen this gap"]
-                : deaths >= 3
-                  ? ["add a safe zone", "slow the fast dots", "widen this gap"]
-                  : ["widen this gap", "add a safe zone", "slow the fast dots"]
+            hudDirty = true
+            const turn = deaths >= 6 ? 0 : deaths >= 3 ? 1 : 2
+            chips = [...PLATFORMER_TWEAK_CHIPS.slice(turn), ...PLATFORMER_TWEAK_CHIPS.slice(0, turn)]
             const path = attempt.slice()
             playThump()
             const due = performance.now() + SOUND_LEAD_MS
@@ -244,42 +279,36 @@ export function PlatformerRenderer({ branch, onHud, onReady, registerAsk, paused
               due,
               run: () => {
                 ghosts = [...ghosts, { points: path, born: performance.now() }].slice(-FEEL.ghostPaths)
+                flashTone = "hurt"
                 flashUntil = performance.now() + 180
               },
             })
             attempt = []
-            publish()
           }
           if (result.events.collected.length > 0) {
-            hintOn = false
+            hudDirty = true
+            if (hintOn) hintOn = false
             playScaleNote()
-            const got = result.events.collected.slice()
-            pending.push({
-              due: performance.now() + SOUND_LEAD_MS,
-              run: () => {
-                for (const index of got) hiddenCoins[index] = true
-              },
-            })
-            publish()
           }
-          if (!beforeAlive && result.sim.alive) {
-            hiddenCoins = result.sim.coins.slice()
+          if (!beforeAlive && sim.alive) {
+            hudDirty = true
             attempt = []
-            publish()
+            youUntil = now + FEEL.youMarkMs
+            onLifeRef.current?.()
           }
-          sim = result.sim
           if (result.events.cleared) {
             playChord()
             const due = performance.now() + SOUND_LEAD_MS
             const lastLevel = levelIndex >= snapshot.levels.length - 1
             const nextIndex = levelIndex + 1
             levelsCleared += 1
-            chips = ["add a level after this", "slow the fast dots", "add a safe zone"]
+            chips = [...PLATFORMER_TWEAK_CHIPS]
             const clearedLevel = levelIndex + 1
             const clearedDeaths = deaths
             pending.push({
               due,
               run: () => {
+                flashTone = "clear"
                 flashUntil = performance.now() + 280
                 if (lastLevel) {
                   clearedAll = true
@@ -300,11 +329,12 @@ export function PlatformerRenderer({ branch, onHud, onReady, registerAsk, paused
               skipClearRef.current = () => boot(nextIndex, true)
             }
           }
-          const places = positionsAt(level(), sim.frame)
+          const places = positionsAt(level(), sim.frame, tweaksRef.current?.enemySpeedScale ?? 1)
           places.forEach((place, index) => {
             trails[index] = [...(trails[index] ?? []), place].slice(-FEEL.dotTrailFrames)
           })
         }
+        if (hudDirty) publish()
       }
 
       const dueNow = pending.filter((item) => now >= item.due)
@@ -319,14 +349,19 @@ export function PlatformerRenderer({ branch, onHud, onReady, registerAsk, paused
         flips,
         flipStart,
         now,
-        hiddenCoins,
         trails,
         ghosts,
         flashUntil,
+        flashTone,
         holdPlayerUntil: holdUntil,
         playerVisualPx: snapshot.playerVisualPx,
         enemyVisualRadius: snapshot.enemyVisualRadiusPx,
+        enemySpeedScale: tweaksRef.current?.enemySpeedScale ?? 1,
+        youUntil,
+        youPulse: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
       })
+      stage.dataset.you = now < youUntil ? "1" : "0"
+      stage.dataset.enemyScale = String(tweaksRef.current?.enemySpeedScale ?? 1)
       if (!ready) {
         ready = true
         onReadyRef.current()
@@ -335,7 +370,7 @@ export function PlatformerRenderer({ branch, onHud, onReady, registerAsk, paused
     }
 
     boot(0, false)
-    registerAsk({ onEmptyEnter: () => {}, onDismiss: () => {} })
+    registerAsk({ onEmptyEnter: () => false, onDismiss: () => {} })
     window.addEventListener("keydown", onKeyDown)
     window.addEventListener("keyup", onKeyUp)
     window.addEventListener("blur", onBlur)

@@ -2,15 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react"
 import Link from "next/link"
-import { CircleHelp, GitBranch, Volume2, VolumeX } from "lucide-react"
-import { AskBar } from "@/components/ask-bar"
+import { CircleHelp, GitBranch, Pause, Play, Volume2, VolumeX } from "lucide-react"
 import { BranchBrowser } from "@/components/branch-browser"
 import { HowToOverlay } from "@/components/howto/how-to-overlay"
-import { PlanCard } from "@/components/plan-card"
+import { PauseOverlay, askResultCopy } from "@/components/pause-overlay"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import type { AskPlan, AskSource } from "@/lib/ask/tweak"
 import { renderers } from "@/games/renderers"
 import { gameById } from "@/games/catalog"
 import { getMuted, setMuted, subscribeMute } from "@/lib/shell/audio"
@@ -25,6 +25,59 @@ function branchLabel(branch: BranchRecord): string {
 
 function seenKey(gameId: string): string {
   return `howto_seen_${gameId}`
+}
+
+type KeptAsk = {
+  patch: Record<string, number>
+  line: string
+  source: AskSource
+  pending: boolean
+}
+
+function storageKey(gameId: string): string {
+  return `liquid-ask:${gameId}`
+}
+
+const keptCache = new Map<string, { raw: string | null; value: KeptAsk | null }>()
+
+function readKept(gameId: string): KeptAsk | null {
+  if (typeof window === "undefined") return null
+  const raw = window.localStorage.getItem(storageKey(gameId))
+  const hit = keptCache.get(gameId)
+  if (hit && hit.raw === raw) return hit.value
+  let value: KeptAsk | null = null
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw) as KeptAsk
+      if (parsed && parsed.patch && typeof parsed.line === "string") value = parsed
+    } catch {
+      value = null
+    }
+  }
+  keptCache.set(gameId, { raw, value })
+  return value
+}
+
+function writeKept(gameId: string, value: KeptAsk): void {
+  const raw = JSON.stringify(value)
+  window.localStorage.setItem(storageKey(gameId), raw)
+  keptCache.set(gameId, { raw, value })
+  window.dispatchEvent(new Event("liquid-ask"))
+}
+
+function useKeptAsk(gameId: string): KeptAsk | null {
+  return useSyncExternalStore(
+    (onChange) => {
+      window.addEventListener("liquid-ask", onChange)
+      window.addEventListener("storage", onChange)
+      return () => {
+        window.removeEventListener("liquid-ask", onChange)
+        window.removeEventListener("storage", onChange)
+      }
+    },
+    () => readKept(gameId),
+    () => null,
+  )
 }
 
 function useHowToSeen(gameId: string): boolean {
@@ -45,7 +98,16 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
   const Renderer = renderers[gameId]
   const [hud, setHud] = useState<HudState | null>(null)
   const [hudGame, setHudGame] = useState(gameId)
-  const [plan, setPlan] = useState<string | null>(null)
+  const [paused, setPaused] = useState(false)
+  const [pauseGame, setPauseGame] = useState(gameId)
+  const [asking, setAsking] = useState(false)
+  const [askNote, setAskNote] = useState<string | null>(null)
+  const kept = useKeptAsk(gameId)
+  if (pauseGame !== gameId) {
+    setPauseGame(gameId)
+    setPaused(false)
+    setAskNote(null)
+  }
   const [forcedGame, setForcedGame] = useState<string | null>(null)
   const [howtoSession, setHowtoSession] = useState(0)
   const seen = useHowToSeen(gameId)
@@ -56,9 +118,12 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
     setHud(null)
   }
   const askHandlers = useRef<AskHandlers>({
-    onEmptyEnter: () => {},
+    onEmptyEnter: () => false,
     onDismiss: () => {},
   })
+  const [hintDismissed, setHintDismissed] = useState(false)
+  const hintStarted = useRef(false)
+  const stopHint = useRef<() => void>(() => {})
 
   const onReady = useCallback(() => {
     if (ready.current) return
@@ -90,6 +155,26 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
   }, [game?.themeClass])
 
   useEffect(() => {
+    if (howtoOpen || hintStarted.current) return
+    hintStarted.current = true
+    const timer = window.setTimeout(() => setHintDismissed(true), 5000)
+    const stop = (event: Event) => {
+      const target = event.target
+      if (target instanceof Element && target.closest("[data-shell-control]")) return
+      setHintDismissed(true)
+    }
+    window.addEventListener("keydown", stop)
+    window.addEventListener("pointerdown", stop)
+    stopHint.current = () => {
+      window.clearTimeout(timer)
+      window.removeEventListener("keydown", stop)
+      window.removeEventListener("pointerdown", stop)
+    }
+  }, [howtoOpen])
+
+  useEffect(() => () => stopHint.current(), [])
+
+  useEffect(() => {
     const onCreated = () => {
       if (window.localStorage.getItem(BRANCH_TIP_KEY) === "1") return
       setTipOpen(true)
@@ -107,6 +192,70 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
     window.addEventListener("pointerdown", dismiss)
     return () => window.removeEventListener("pointerdown", dismiss)
   }, [tipOpen])
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (howtoOpen) return
+      const typing =
+        event.target instanceof HTMLElement &&
+        (event.target.tagName === "INPUT" || event.target.tagName === "TEXTAREA")
+      if (event.key === "Escape") {
+        event.preventDefault()
+        event.stopPropagation()
+        setPaused((value) => !value)
+        return
+      }
+      if (event.key === "p" || event.key === "P") {
+        if (typing) return
+        event.preventDefault()
+        event.stopPropagation()
+        setPaused((value) => !value)
+      }
+    }
+    window.addEventListener("keydown", onKey, true)
+    return () => window.removeEventListener("keydown", onKey, true)
+  }, [howtoOpen])
+
+  const applyLife = useCallback(() => {
+    const current = readKept(gameId)
+    if (!current?.pending) return
+    writeKept(gameId, { ...current, pending: false })
+  }, [gameId])
+
+  const submitAsk = useCallback(
+    async (text: string) => {
+      setAsking(true)
+      setAskNote(null)
+      try {
+        const response = await fetch("/api/ask", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ gameId, ask: text }),
+        })
+        const plan = (await response.json()) as AskPlan
+        if (!response.ok || !plan?.kind) {
+          setAskNote("that ask did not go through. try again.")
+          return
+        }
+        if (plan.kind === "tweak" && plan.patch) {
+          writeKept(gameId, {
+            patch: plan.patch,
+            line: plan.line,
+            source: plan.source,
+            pending: true,
+          })
+          setAskNote(askResultCopy(plan, gameId === "words" ? "start the next round" : "respawn"))
+          return
+        }
+        setAskNote(plan.line)
+      } catch {
+        setAskNote("that ask did not go through. try again.")
+      } finally {
+        setAsking(false)
+      }
+    },
+    [gameId],
+  )
 
   if (!game || !branch || !Renderer) {
     return (
@@ -145,29 +294,56 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
           <Badge variant="secondary" className="label shrink-0">
             {branchLabel(branch)}
           </Badge>
+          <Link href="/shelf" data-shelf className="label shrink-0 text-[12px] font-bold">
+            shelf
+          </Link>
         </div>
         <p className="tabular min-w-0 flex-1 truncate text-center text-[14px] font-bold" aria-live="polite">
           {stats}
         </p>
         {view.status ? <p className="label hidden text-[12px] font-bold sm:block">{view.status}</p> : null}
-        <div className="flex shrink-0 items-center">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label="how to play"
-            onClick={() => {
-              setHowtoSession((current) => current + 1)
-              setForcedGame(gameId)
-            }}
-          >
-            <CircleHelp />
-          </Button>
-          <TooltipProvider>
+        <TooltipProvider delay={400}>
+          <div className="flex shrink-0 items-center">
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label={paused ? "resume" : "pause"}
+                    aria-pressed={paused}
+                    onClick={() => setPaused((value) => !value)}
+                  >
+                    {paused ? <Play /> : <Pause />}
+                  </Button>
+                }
+              />
+              <TooltipContent>{paused ? "resume" : "pause"}</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label="how to play"
+                    onClick={() => {
+                      setHowtoSession((current) => current + 1)
+                      setForcedGame(gameId)
+                    }}
+                  >
+                    <CircleHelp />
+                  </Button>
+                }
+              />
+              <TooltipContent>how to play</TooltipContent>
+            </Tooltip>
             <Tooltip
-              open={tipOpen}
+              open={tipOpen ? true : undefined}
               onOpenChange={(next) => {
-                if (!next) {
+                if (!next && tipOpen) {
                   window.localStorage.setItem(BRANCH_TIP_KEY, "1")
                   setTipOpen(false)
                 }
@@ -186,28 +362,51 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
                   </Button>
                 }
               />
-              <TooltipContent>this is your branch. share it or keep twisting</TooltipContent>
+              <TooltipContent>
+                remix tree
+              </TooltipContent>
             </Tooltip>
-          </TooltipProvider>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label={muted ? "unmute" : "mute"}
-            aria-pressed={muted}
-            onClick={() => setMuted(!muted)}
-          >
-            {muted ? <VolumeX /> : <Volume2 />}
-          </Button>
-        </div>
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    aria-label={muted ? "unmute" : "mute"}
+                    aria-pressed={muted}
+                    onClick={() => setMuted(!muted)}
+                  >
+                    {muted ? <VolumeX /> : <Volume2 />}
+                  </Button>
+                }
+              />
+              <TooltipContent>{muted ? "unmute" : "mute"}</TooltipContent>
+            </Tooltip>
+          </div>
+        </TooltipProvider>
       </header>
       {diff ? (
         <p data-branch-diff className="label px-4 pb-1 text-[14px] font-medium text-foreground/80">
           {diff}
         </p>
       ) : null}
-      {view.hint ? (
-        <p className="pointer-events-none px-4 pb-1 text-[14px] font-medium text-foreground/70">{view.hint}</p>
+      {view.goal ? (
+        <p data-goal className="px-4 pb-1 text-[14px] leading-5 font-medium text-foreground">
+          {view.goal}
+        </p>
+      ) : null}
+      {!hintDismissed && !howtoOpen && !paused && view.hint ? (
+        <p data-hint className="pointer-events-none px-4 pb-1 text-[14px] font-medium text-foreground/70">
+          {view.hint}
+        </p>
+      ) : null}
+      {kept ? (
+        <p data-tweak className="px-4 pb-1 text-[14px] font-medium">
+          {kept.pending
+            ? `${kept.line}. kept in this browser. starts when you ${gameId === "words" ? "start the next round" : "respawn"}.`
+            : `${kept.line}. kept in this browser.`}
+        </p>
       ) : null}
       <div className="relative min-h-0 flex-1 overflow-hidden">
         <Renderer
@@ -215,28 +414,27 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
           onHud={setHud}
           onReady={onReady}
           registerAsk={registerAsk}
-          paused={howtoOpen}
+          paused={howtoOpen || paused}
+          tweaks={kept && !kept.pending ? kept.patch : undefined}
+          onLife={applyLife}
         />
       </div>
-      {view.ask.visible ? (
-        <footer className="relative z-30 px-4 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-4">
-          {plan ? (
-            <div className="absolute bottom-full left-4 mb-3 w-[min(28rem,calc(100%-2rem))]">
-              <PlanCard ask={plan} onClose={() => setPlan(null)} />
-            </div>
-          ) : null}
-          <AskBar
-            chips={view.ask.chips}
-            maxLength={view.ask.maxLength}
-            placeholder={view.ask.placeholder}
-            pulse={view.ask.pulse}
-            focus={view.ask.focus && !howtoOpen}
-            onSubmit={setPlan}
-            onEmptyEnter={() => askHandlers.current.onEmptyEnter()}
-            onDismiss={() => askHandlers.current.onDismiss()}
-            note={game.copy.remixBlurb}
-          />
-        </footer>
+      {paused ? (
+        <PauseOverlay
+          chips={view.ask.chips}
+          placeholder={view.ask.placeholder}
+          maxLength={view.ask.maxLength}
+          note={game.copy.remixBlurb}
+          busy={asking}
+          result={askNote}
+          onSubmit={(text) => void submitAsk(text)}
+          onEmptyEnter={() => askHandlers.current.onEmptyEnter()}
+          onHowTo={() => {
+            setHowtoSession((current) => current + 1)
+            setForcedGame(gameId)
+          }}
+          onResume={() => setPaused(false)}
+        />
       ) : null}
       <HowToOverlay
         key={`${gameId}-${howtoSession}`}
