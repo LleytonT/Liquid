@@ -16,6 +16,7 @@ export type PlatformerSnapshot = {
   playerVisualPx: number
   enemyVisualRadiusPx: number
   coinRadiusPx: number
+  enemySpeedScale: number
   levels: RuntimeLevel[]
 }
 
@@ -144,12 +145,18 @@ export function preparePlatformer(branch: BranchRecord): PlatformerSnapshot {
     if (crossing) fail(`${levels[i].id}: ${crossing}`)
   }
 
+  const enemySpeed = tunables.enemySpeedScale
+  if (enemySpeed && (enemySpeed.value < enemySpeed.min || enemySpeed.value > enemySpeed.max)) {
+    fail("enemySpeedScale is out of range")
+  }
+
   return {
     id: branch.snapshot.id,
     playerSpeed: speed.value,
     playerVisualPx: tunables.playerVisualPx.value,
     enemyVisualRadiusPx: tunables.enemyVisualRadiusPx.value,
     coinRadiusPx: tunables.coinRadiusPx.value,
+    enemySpeedScale: enemySpeed?.value ?? 1,
     levels,
   }
 }

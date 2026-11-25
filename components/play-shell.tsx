@@ -2,17 +2,20 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { CircleHelp, GitBranch, Pause, Play, Volume2, VolumeX } from "lucide-react"
-import { BranchBrowser } from "@/components/branch-browser"
+import { BranchBrowser, type TreeNodeData } from "@/components/branch-browser"
 import { HowToOverlay } from "@/components/howto/how-to-overlay"
-import { PauseOverlay, askResultCopy } from "@/components/pause-overlay"
+import { PauseOverlay } from "@/components/pause-overlay"
+import type { PendingPlan } from "@/components/pending-plan"
+import { TraceStrip, type TraceView } from "@/components/trace-strip"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import type { AskPlan, AskSource } from "@/lib/ask/tweak"
 import { renderers } from "@/games/renderers"
 import { gameById } from "@/games/catalog"
+import { anonId } from "@/lib/shell/anon-id"
 import { getMuted, setMuted, subscribeMute } from "@/lib/shell/audio"
 import { BRANCH_CREATED_EVENT, BRANCH_TIP_KEY } from "@/lib/shell/branch-created"
 import type { AskHandlers, BranchRecord, HudState } from "@/lib/shell/game-module"
@@ -20,64 +23,11 @@ import { Atmosphere } from "@/lib/shell/atmosphere"
 
 function branchLabel(branch: BranchRecord): string {
   if (!branch.parentId) return "original"
-  return `${branch.title}'s twist`
+  return branch.title
 }
 
 function seenKey(gameId: string): string {
   return `howto_seen_${gameId}`
-}
-
-type KeptAsk = {
-  patch: Record<string, number>
-  line: string
-  source: AskSource
-  pending: boolean
-}
-
-function storageKey(gameId: string): string {
-  return `liquid-ask:${gameId}`
-}
-
-const keptCache = new Map<string, { raw: string | null; value: KeptAsk | null }>()
-
-function readKept(gameId: string): KeptAsk | null {
-  if (typeof window === "undefined") return null
-  const raw = window.localStorage.getItem(storageKey(gameId))
-  const hit = keptCache.get(gameId)
-  if (hit && hit.raw === raw) return hit.value
-  let value: KeptAsk | null = null
-  if (raw) {
-    try {
-      const parsed = JSON.parse(raw) as KeptAsk
-      if (parsed && parsed.patch && typeof parsed.line === "string") value = parsed
-    } catch {
-      value = null
-    }
-  }
-  keptCache.set(gameId, { raw, value })
-  return value
-}
-
-function writeKept(gameId: string, value: KeptAsk): void {
-  const raw = JSON.stringify(value)
-  window.localStorage.setItem(storageKey(gameId), raw)
-  keptCache.set(gameId, { raw, value })
-  window.dispatchEvent(new Event("liquid-ask"))
-}
-
-function useKeptAsk(gameId: string): KeptAsk | null {
-  return useSyncExternalStore(
-    (onChange) => {
-      window.addEventListener("liquid-ask", onChange)
-      window.addEventListener("storage", onChange)
-      return () => {
-        window.removeEventListener("liquid-ask", onChange)
-        window.removeEventListener("storage", onChange)
-      }
-    },
-    () => readKept(gameId),
-    () => null,
-  )
 }
 
 function useHowToSeen(gameId: string): boolean {
@@ -92,9 +42,23 @@ function useHowToSeen(gameId: string): boolean {
   )
 }
 
-export function PlayShell({ gameId, branchId }: { gameId: string; branchId: string }) {
+export function PlayShell({
+  gameId,
+  branch,
+  parent,
+  ownerId,
+  trace,
+  tree,
+}: {
+  gameId: string
+  branch: BranchRecord
+  parent: BranchRecord | null
+  ownerId: string
+  trace: TraceView | null
+  tree?: TreeNodeData[]
+}) {
+  const router = useRouter()
   const game = gameById(gameId)
-  const branch = game?.seed.branches.find((item) => item.id === branchId)
   const Renderer = renderers[gameId]
   const [hud, setHud] = useState<HudState | null>(null)
   const [hudGame, setHudGame] = useState(gameId)
@@ -102,11 +66,12 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
   const [pauseGame, setPauseGame] = useState(gameId)
   const [asking, setAsking] = useState(false)
   const [askNote, setAskNote] = useState<string | null>(null)
-  const kept = useKeptAsk(gameId)
+  const [pending, setPending] = useState<PendingPlan | null>(null)
   if (pauseGame !== gameId) {
     setPauseGame(gameId)
     setPaused(false)
     setAskNote(null)
+    setPending(null)
   }
   const [forcedGame, setForcedGame] = useState<string | null>(null)
   const [howtoSession, setHowtoSession] = useState(0)
@@ -218,12 +183,6 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
 
   const askingRef = useRef(false)
 
-  const applyLife = useCallback(() => {
-    const current = readKept(gameId)
-    if (!current?.pending) return
-    writeKept(gameId, { ...current, pending: false })
-  }, [gameId])
-
   const submitAsk = useCallback(
     async (text: string) => {
       if (askingRef.current) return
@@ -235,29 +194,32 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
         if (typeof knob.value === "number") current[key] = knob.value
       }
       if (gameId === "platformer") current.enemySpeedScale ??= 1
-      if (kept && !kept.pending) Object.assign(current, kept.patch)
       try {
         const response = await fetch("/api/ask", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ gameId, ask: text, current }),
+          body: JSON.stringify({ gameId, parentId: branch.id, ask: text, anonId: anonId(), current }),
         })
-        const plan = (await response.json()) as AskPlan
-        if (!response.ok || !plan?.kind) {
-          setAskNote("that ask did not go through. try again.")
+        const body = (await response.json()) as {
+          route?: PendingPlan["route"]
+          confidence?: number
+          plan?: { summary?: string; question?: string }
+          branch?: { id?: string } | null
+          persistence?: { warning?: string | null }
+          error?: string
+        }
+        if (!response.ok || !body.route || !body.plan?.summary || typeof body.confidence !== "number") {
+          setAskNote(body.error ?? "that ask did not go through. try again.")
           return
         }
-        if (plan.kind === "tweak" && plan.patch) {
-          writeKept(gameId, {
-            patch: plan.patch,
-            line: plan.line,
-            source: plan.source,
-            pending: true,
-          })
-          setAskNote(askResultCopy(plan, gameId === "words" ? "start the next round" : "respawn"))
-          return
-        }
-        setAskNote(plan.line)
+        setPending({
+          route: body.route,
+          confidence: body.confidence,
+          summary: body.plan.summary,
+          question: body.plan.question,
+          branchId: body.branch?.id ?? null,
+          warning: body.persistence?.warning ?? null,
+        })
       } catch {
         setAskNote("that ask did not go through. try again.")
       } finally {
@@ -265,10 +227,39 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
         setAsking(false)
       }
     },
-    [branch, gameId, kept],
+    [branch, gameId],
   )
 
-  if (!game || !branch || !Renderer) {
+  const decide = useCallback(
+    async (decision: "accept" | "reject") => {
+      if (!pending?.branchId) return
+      setAsking(true)
+      setAskNote(null)
+      try {
+        const response = await fetch("/api/ask/decide", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ branchId: pending.branchId, decision }),
+        })
+        const body = (await response.json()) as { error?: string }
+        if (!response.ok) {
+          setAskNote(body.error ?? "that plan did not go through. try again.")
+          return
+        }
+        const next = pending.branchId
+        setPending(null)
+        if (decision === "accept") router.push(`/b/${next}`)
+        else setAskNote("left as it was. nothing was applied.")
+      } catch {
+        setAskNote("that plan did not go through. try again.")
+      } finally {
+        setAsking(false)
+      }
+    },
+    [pending, router],
+  )
+
+  if (!game || !Renderer) {
     return (
       <Atmosphere>
         <main className="mx-auto flex max-w-md flex-1 flex-col justify-center gap-3 px-6">
@@ -282,9 +273,6 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
     )
   }
 
-  const parent = branch.parentId
-    ? (game.seed.branches.find((item) => item.id === branch.parentId) ?? null)
-    : null
   const diff = game.copy.describeBranchDiff(branch, parent)
   const steps = game.copy.howTo(branch)
   const view = hud ?? {
@@ -305,6 +293,9 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
           <Badge variant="secondary" className="label shrink-0">
             {branchLabel(branch)}
           </Badge>
+          <span data-owner={ownerId} className="label shrink-0 text-[12px] font-bold text-foreground/60">
+            {ownerId}
+          </span>
           <Link href="/shelf" data-shelf className="label shrink-0 text-[12px] font-bold">
             shelf
           </Link>
@@ -400,6 +391,7 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
           </div>
         </TooltipProvider>
       </header>
+      {trace ? <TraceStrip trace={trace} /> : null}
       {diff ? (
         <p data-branch-diff className="label px-4 pb-1 text-[14px] font-medium text-foreground/80">
           {diff}
@@ -415,13 +407,6 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
           {view.hint}
         </p>
       ) : null}
-      {kept ? (
-        <p data-tweak className="px-4 pb-1 text-[14px] font-medium">
-          {kept.pending
-            ? `${kept.line}. kept in this browser. starts when you ${gameId === "words" ? "start the next round" : "respawn"}.`
-            : `${kept.line}. kept in this browser.`}
-        </p>
-      ) : null}
       <div className="relative min-h-0 flex-1 overflow-hidden">
         <Renderer
           branch={branch}
@@ -429,8 +414,6 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
           onReady={onReady}
           registerAsk={registerAsk}
           paused={howtoOpen || paused}
-          tweaks={kept && !kept.pending ? kept.patch : undefined}
-          onLife={applyLife}
         />
       </div>
       {paused ? (
@@ -440,8 +423,12 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
           maxLength={view.ask.maxLength}
           note={game.copy.remixBlurb}
           busy={asking}
-          result={askNote}
+          error={askNote}
+          plan={pending}
           onSubmit={(text) => void submitAsk(text)}
+          onAccept={() => void decide("accept")}
+          onReject={() => void decide("reject")}
+          onClosePlan={() => setPending(null)}
           onEmptyEnter={() => askHandlers.current.onEmptyEnter()}
           onHowTo={() => {
             setHowtoSession((current) => current + 1)
@@ -461,7 +448,7 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
       <Sheet open={treeOpen} onOpenChange={setTreeOpen}>
         <SheetContent>
           <SheetTitle className="label pr-8 text-[12px] font-bold">remix tree</SheetTitle>
-          <BranchBrowser gameId={game.id} />
+          <BranchBrowser gameId={game.id} initial={tree} />
         </SheetContent>
       </Sheet>
     </Atmosphere>

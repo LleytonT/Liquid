@@ -1,8 +1,9 @@
 "use client"
 
 import { AskBar } from "@/components/ask-bar"
+import { PlanCard } from "@/components/plan-card"
+import type { PendingPlan } from "@/components/pending-plan"
 import { Button } from "@/components/ui/button"
-import type { AskPlan } from "@/lib/ask/tweak"
 
 export function PauseOverlay({
   chips,
@@ -10,8 +11,12 @@ export function PauseOverlay({
   maxLength,
   note,
   busy,
-  result,
+  error,
+  plan,
   onSubmit,
+  onAccept,
+  onReject,
+  onClosePlan,
   onEmptyEnter,
   onHowTo,
   onResume,
@@ -21,17 +26,22 @@ export function PauseOverlay({
   maxLength: number
   note?: string
   busy: boolean
-  result: string | null
+  error: string | null
+  plan: PendingPlan | null
   onSubmit: (ask: string) => void
+  onAccept: () => void
+  onReject: () => void
+  onClosePlan: () => void
   onEmptyEnter: () => boolean
   onHowTo: () => void
   onResume: () => void
 }) {
+  const showAsk = !plan || plan.route === "clarify"
   return (
     <div
       data-pause-overlay
       data-shell-control
-      className="absolute inset-0 z-40 flex items-center justify-center bg-background/95 p-6"
+      className="absolute inset-0 z-40 flex items-center justify-center overflow-y-auto bg-background/95 p-6"
     >
       <div className="grid w-full max-w-md gap-4">
         <div>
@@ -40,22 +50,27 @@ export function PauseOverlay({
             the game is stopped. ask for a twist, or resume.
           </p>
         </div>
-        <AskBar
-          chips={chips}
-          maxLength={maxLength}
-          placeholder={placeholder}
-          pulse={false}
-          focus
-          busy={busy}
-          onSubmit={onSubmit}
-          onEmptyEnter={onEmptyEnter}
-          onDismiss={onResume}
-          blurb={note}
-        />
+        {plan ? (
+          <PlanCard plan={plan} busy={busy} onAccept={onAccept} onReject={onReject} onClose={onClosePlan} />
+        ) : null}
+        {showAsk ? (
+          <AskBar
+            chips={chips}
+            maxLength={maxLength}
+            placeholder={placeholder}
+            pulse={false}
+            focus={!plan}
+            busy={busy}
+            onSubmit={onSubmit}
+            onEmptyEnter={onEmptyEnter}
+            onDismiss={onResume}
+            blurb={note}
+          />
+        ) : null}
         {busy ? <p className="text-[14px] font-medium">reading your ask...</p> : null}
-        {result ? (
+        {error ? (
           <p data-ask-result className="text-[14px] leading-5 font-medium" role="status">
-            {result}
+            {error}
           </p>
         ) : null}
         <div className="flex flex-wrap gap-2">
@@ -69,10 +84,4 @@ export function PauseOverlay({
       </div>
     </div>
   )
-}
-
-export function askResultCopy(plan: AskPlan, when: string): string {
-  if (plan.kind !== "tweak" || !plan.patch) return plan.line
-  const via = plan.source === "gateway" ? "the model planned this." : "matched from your words. the model was not used."
-  return `${plan.line}. kept in this browser. starts when you ${when}. ${via}`
 }

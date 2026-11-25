@@ -26,8 +26,7 @@ function metric(metrics: readonly HudMetric[], id: string): string {
 export const WORDS_TWEAK_CHIPS = ["give me 8 guesses", "fewer guesses", "a 60 second timer"] as const
 
 export const wordsCopy: GameCopy = {
-  remixBlurb:
-    "tweaks like speed, guesses or timer apply on your next try and stay in this browser. new levels aren't live yet.",
+  remixBlurb: "you see a plan before it is applied. a tweak becomes a branch. a new level is saved and is not built.",
   askPlaceholder: "ask for a twist, e.g. give me 8 guesses",
   pulseChip: "give me 8 guesses",
   firstRunHint: "type a word, press enter",
@@ -37,7 +36,7 @@ export const wordsCopy: GameCopy = {
     return [
       { id: "guess", copy: `guess the word in ${guesses} tries` },
       { id: "states", copy: "" },
-      { id: "remix", copy: "ask for a tweak. it applies on your next try and stays in this browser." },
+      { id: "remix", copy: "ask for a tweak. you see the plan, then it becomes a branch." },
     ]
   },
   formatStats: (metrics) => {

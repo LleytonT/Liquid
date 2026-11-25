@@ -31,8 +31,7 @@ export const PLATFORMER_TWEAK_CHIPS = [
 ] as const
 
 export const platformerCopy: GameCopy = {
-  remixBlurb:
-    "tweaks like speed, guesses or timer apply on your next try and stay in this browser. new levels aren't live yet.",
+  remixBlurb: "you see a plan before it is applied. a tweak becomes a branch. a new level is saved and is not built.",
   askPlaceholder: "ask for a twist, e.g. make the blue shapes slower",
   pulseChip: "make the blue shapes slower",
   firstRunHint: "reach green with every coin",
@@ -42,7 +41,7 @@ export const platformerCopy: GameCopy = {
     { id: "dodge", copy: "dodge the blue dots" },
     { id: "deaths", copy: "deaths count each time you are hit. you respawn at the start." },
     { id: "goal", copy: "grab every coin, then reach green" },
-    { id: "remix", copy: "ask for a tweak. it applies on your next try and stays in this browser." },
+    { id: "remix", copy: "ask for a tweak. you see the plan, then it becomes a branch." },
   ],
   formatStats: (metrics) => {
     if (metrics.length === 0) return ""
@@ -75,6 +74,12 @@ export function describePlatformerDiff(branch: BranchRecord, parent: BranchRecor
   const square = next.playerVisualPx
   if (square && previous?.playerVisualPx && square.value !== previous.playerVisualPx.value) {
     parts.push(sizePhrase(square.value, previous.playerVisualPx.value, "a bigger square", "a smaller square", "the same square"))
+  }
+  const enemies = next.enemySpeedScale
+  if (enemies && (!previous?.enemySpeedScale || previous.enemySpeedScale.value !== enemies.value)) {
+    if (!(enemies.value === 1 && !previous?.enemySpeedScale)) {
+      parts.push(enemies.value < 1 ? "blue shapes move slower" : enemies.value > 1 ? "blue shapes move faster" : "blue shapes move at normal speed")
+    }
   }
   if (!parent && parts.length === 0 && speed) parts.push(speedPhrase(speed.value))
   return parts.length > 0 ? parts.join(", ") : null
