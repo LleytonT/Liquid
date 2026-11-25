@@ -17,3 +17,12 @@ test("the ask placeholder is per game", () => {
   assert.equal(platformer.ask.placeholder, platformerCopy.askPlaceholder)
   assert.equal(words.ask.placeholder, wordsCopy.askPlaceholder)
 })
+
+test("a slower enemy patch reads as blue shapes", () => {
+  const parent = seed as BranchRecord
+  const child = structuredClone(parent)
+  child.id = "child"
+  child.parentId = parent.id
+  child.snapshot.tunables.enemySpeedScale = { value: 0.55, min: 0.45, max: 2.5, locked: false }
+  assert.equal(describePlatformerDiff(child, parent), "blue shapes move slower")
+})

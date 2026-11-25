@@ -1,0 +1,14 @@
+{
+  "name": "@liquid/words",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./adapter": "./adapter.ts",
+    "./renderer": "./renderer.tsx"
+  },
+  "dependencies": {
+    "@liquid/factory": "0.0.0"
+  }
+}

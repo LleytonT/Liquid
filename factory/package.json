@@ -1,0 +1,21 @@
+{
+  "name": "@liquid/factory",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./ask": "./src/ask.ts",
+    "./ids": "./src/ids.ts",
+    "./owner": "./src/owner.ts",
+    "./resolve": "./src/resolve.ts",
+    "./store": "./src/store.ts",
+    "./types": "./src/types.ts",
+    "./visibility": "./src/visibility.ts"
+  },
+  "dependencies": {
+    "@upstash/redis": "^1.36.0",
+    "ai": "^7.0.181",
+    "zod": "^4.6.7"
+  }
+}

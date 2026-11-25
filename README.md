@@ -16,9 +16,9 @@ npm run build
 npm start
 ```
 
-`npm run solve` checks both games: each platformer level has a finishable path, and every Liquid Words answer is on the valid list and winnable under the current tunables.
+`npm run solve` checks both games: each platformer level has a finishable path, and every Liquid Words answer is on the valid list and winnable under the current tunables. `npm test` covers the games and the factory.
 
-Arrow keys or WASD move. On a touch screen, use the pad at the lower right. The first visit to a game opens how to play (`howto_seen_<game>` in localStorage); the ? button opens it again. The ask bar only keeps a plan card; nothing is built from it yet. A branch line under the HUD is plain words from that game's tunables.
+Arrow keys or WASD move. On a touch screen, use the pad at the lower right. The first visit to a game opens how to play (`howto_seen_<game>` in localStorage); the ? button opens it again. An ask shows a plan before anything is applied. A tweak becomes a playable branch. A new level or mechanic is saved as a draft and is not built. A vague ask asks one question and does not create a branch. See [factory/README.md](factory/README.md).
 
 ## Game module
 
@@ -34,4 +34,4 @@ Register the headless module in `games/catalog.ts` and the renderer in `games/re
 
 Tile flip (`planTileFlip` in `lib/shell/tile-flip.ts`) and synthesized sound (`lib/shell/audio.ts`) are shell primitives. The platformer calls them; it does not own them.
 
-`AI_GATEWAY_API_KEY` is listed in `.env.example` for later. This step does not call a model. Set the key in Vercel, team Internal Playground.
+The ask router tries the Vercel AI Gateway, then the game's word list. `AI_GATEWAY_API_KEY` is for a local gateway call. Durable branches need Upstash Redis from the Vercel Marketplace: `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`. Without them, production logs a file-store fallback.

@@ -85,6 +85,7 @@ export function PlatformerRenderer({
     onHudRef.current = onHud
     onReadyRef.current = onReady
     const snapshot = preparePlatformer(branch)
+    const enemyScale = () => tweaksRef.current?.enemySpeedScale ?? snapshot.enemySpeedScale
     const canvas = canvasRef.current
     const stage = stageRef.current
     const ctx = canvas?.getContext("2d")
@@ -262,7 +263,7 @@ export function PlatformerRenderer({
             { x, y },
             level(),
             live?.playerSpeed ?? snapshot.playerSpeed,
-            live?.enemySpeedScale ?? 1,
+            enemyScale(),
           )
           sim = result.sim
           attempt.push({ x: sim.x, y: sim.y })
@@ -329,7 +330,7 @@ export function PlatformerRenderer({
               skipClearRef.current = () => boot(nextIndex, true)
             }
           }
-          const places = positionsAt(level(), sim.frame, tweaksRef.current?.enemySpeedScale ?? 1)
+          const places = positionsAt(level(), sim.frame, enemyScale())
           places.forEach((place, index) => {
             trails[index] = [...(trails[index] ?? []), place].slice(-FEEL.dotTrailFrames)
           })
@@ -356,12 +357,12 @@ export function PlatformerRenderer({
         holdPlayerUntil: holdUntil,
         playerVisualPx: snapshot.playerVisualPx,
         enemyVisualRadius: snapshot.enemyVisualRadiusPx,
-        enemySpeedScale: tweaksRef.current?.enemySpeedScale ?? 1,
+        enemySpeedScale: enemyScale(),
         youUntil,
         youPulse: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
       })
       stage.dataset.you = now < youUntil ? "1" : "0"
-      const enemySpeedScale = tweaksRef.current?.enemySpeedScale ?? 1
+      const enemySpeedScale = enemyScale()
       stage.dataset.enemyScale = String(enemySpeedScale)
       stage.dataset.enemySpeedScale = String(enemySpeedScale)
       if (!ready) {
