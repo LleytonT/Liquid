@@ -109,7 +109,7 @@ function PlayCard({ card }: { card: LandingCard }) {
 
 const STEPS = [
   { id: "play", body: "open a branch. anyone can play." },
-  { id: "prompt", body: "ask in plain words." },
+  { id: "prompt", body: "pause (or tap ask) and say what to change." },
   { id: "remix", body: "each version shows on the remix tree." },
 ]
 

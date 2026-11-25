@@ -23,7 +23,7 @@ function metric(metrics: readonly HudMetric[], id: string): string {
   return metrics.find((item) => item.id === id)?.value ?? ""
 }
 
-export const WORDS_TWEAK_CHIPS = ["give me 8 guesses", "fewer guesses", "no timer"] as const
+export const WORDS_TWEAK_CHIPS = ["give me 8 guesses", "fewer guesses", "a 60 second timer"] as const
 
 export const wordsCopy: GameCopy = {
   remixBlurb:

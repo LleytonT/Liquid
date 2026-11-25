@@ -1,0 +1,18 @@
+{
+  "make the blue shapes slower": {
+    "kind": "tweak",
+    "patch": { "enemySpeedScale": "0.55" }
+  },
+  "make the blue dots twice as fast": {
+    "kind": "tweak",
+    "patch": { "enemySpeedScale": "2", "note": "twice" }
+  },
+  "give me 8 guesses": {
+    "kind": "tweak",
+    "patch": { "guesses": "8" }
+  },
+  "give me more guesses": {
+    "kind": "tweak",
+    "patch": { "guesses": "6" }
+  }
+}
