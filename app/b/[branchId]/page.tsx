@@ -37,7 +37,13 @@ function draftTitle(branch: Branch): string {
   return "this isn't built yet"
 }
 
-export default async function Page({ params }: { params: Promise<{ branchId: string }> }) {
+export default async function Page({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ branchId: string }>
+  searchParams: Promise<{ debug?: string | string[] }>
+}) {
   const { branchId } = await params
   const found = branchById(branchId)
   if (found) {
@@ -58,18 +64,29 @@ export default async function Page({ params }: { params: Promise<{ branchId: str
   if (!isFactoryBranchId(branchId)) notFound()
   return (
     <Suspense fallback={<p className="px-6 py-8">loading branch</p>}>
-      <StoredBranch branchId={branchId} />
+      <StoredBranch branchId={branchId} searchParams={searchParams} />
     </Suspense>
   )
 }
 
-async function StoredBranch({ branchId }: { branchId: string }) {
+function debugOn(value: string | string[] | undefined): boolean {
+  const flag = Array.isArray(value) ? value[0] : value
+  return flag === "1"
+}
+
+async function StoredBranch({
+  branchId,
+  searchParams,
+}: {
+  branchId: string
+  searchParams: Promise<{ debug?: string | string[] }>
+}) {
   await connection()
   const { store } = getStore()
-  const branch = await store.getBranch(branchId)
+  const [branch, query] = await Promise.all([store.getBranch(branchId), searchParams])
   if (!branch) notFound()
   const [trace, tree] = await Promise.all([store.getTrace(branch.traceId), listTree()])
-  const view = traceView(trace)
+  const view = debugOn(query.debug) ? traceView(trace) : null
   if (branch.status !== "playable") {
     return (
       <DraftBranch
