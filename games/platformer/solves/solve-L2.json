@@ -1,0 +1,94 @@
+{
+ "levelId": "lanes",
+ "level": 2,
+ "tickHz": 60,
+ "playerSpeed": 120,
+ "format": "inputs = [[dir, ticks], ...]; dir in N,S,E,W,- (- = no key). Tick k is engine frame k+1 from level start (sim.frame 0).",
+ "inputs": [
+  [
+   "N",
+   2
+  ],
+  [
+   "E",
+   36
+  ],
+  [
+   "-",
+   5
+  ],
+  [
+   "E",
+   10
+  ],
+  [
+   "N",
+   20
+  ],
+  [
+   "E",
+   50
+  ],
+  [
+   "N",
+   14
+  ],
+  [
+   "E",
+   10
+  ],
+  [
+   "S",
+   14
+  ],
+  [
+   "E",
+   88
+  ],
+  [
+   "-",
+   21
+  ],
+  [
+   "N",
+   32
+  ],
+  [
+   "-",
+   5
+  ],
+  [
+   "N",
+   32
+  ],
+  [
+   "-",
+   5
+  ],
+  [
+   "N",
+   8
+  ],
+  [
+   "E",
+   6
+  ]
+ ],
+ "ticks": 358,
+ "clearFrame": 358,
+ "expect": {
+  "cleared": true,
+  "deaths": 0,
+  "coins": 2
+ },
+ "robustness": {
+  "solvedSafeAgainstEnemyOffsetTicks": 6,
+  "levelBestWindowTicksAt4px": 45,
+  "lateStartTicksVerified": [
+   1,
+   2
+  ]
+ },
+ "minClearancePx": 5.0,
+ "longestUnsafeStretchTicks": 311
+}

@@ -1,0 +1,123 @@
+{
+ "levelId": "gauntlet",
+ "level": 5,
+ "tickHz": 60,
+ "playerSpeed": 120,
+ "format": "inputs = [[dir, ticks], ...]; dir in N,S,E,W,- (- = no key). Tick k is engine frame k+1 from level start (sim.frame 0).",
+ "inputs": [
+  [
+   "N",
+   34
+  ],
+  [
+   "E",
+   58
+  ],
+  [
+   "N",
+   18
+  ],
+  [
+   "S",
+   24
+  ],
+  [
+   "E",
+   12
+  ],
+  [
+   "-",
+   4
+  ],
+  [
+   "E",
+   20
+  ],
+  [
+   "S",
+   15
+  ],
+  [
+   "E",
+   40
+  ],
+  [
+   "S",
+   1
+  ],
+  [
+   "E",
+   24
+  ],
+  [
+   "N",
+   10
+  ],
+  [
+   "E",
+   4
+  ],
+  [
+   "N",
+   7
+  ],
+  [
+   "E",
+   36
+  ],
+  [
+   "N",
+   17
+  ],
+  [
+   "E",
+   28
+  ],
+  [
+   "S",
+   4
+  ],
+  [
+   "E",
+   4
+  ],
+  [
+   "-",
+   9
+  ],
+  [
+   "S",
+   32
+  ],
+  [
+   "E",
+   34
+  ],
+  [
+   "W",
+   38
+  ],
+  [
+   "-",
+   44
+  ],
+  [
+   "S",
+   66
+  ]
+ ],
+ "ticks": 583,
+ "clearFrame": 583,
+ "expect": {
+  "cleared": true,
+  "deaths": 0,
+  "coins": 4
+ },
+ "robustness": {
+  "solvedSafeAgainstEnemyOffsetTicks": 3,
+  "lateStartTicksVerified": [
+   1,
+   2
+  ]
+ }
+}

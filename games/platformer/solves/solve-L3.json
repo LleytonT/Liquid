@@ -1,0 +1,78 @@
+{
+ "levelId": "orbit",
+ "level": 3,
+ "tickHz": 60,
+ "playerSpeed": 120,
+ "format": "inputs = [[dir, ticks], ...]; dir in N,S,E,W,- (- = no key). Tick k is engine frame k+1 from level start (sim.frame 0).",
+ "inputs": [
+  [
+   "S",
+   12
+  ],
+  [
+   "E",
+   82
+  ],
+  [
+   "S",
+   24
+  ],
+  [
+   "E",
+   8
+  ],
+  [
+   "N",
+   48
+  ],
+  [
+   "E",
+   4
+  ],
+  [
+   "-",
+   10
+  ],
+  [
+   "E",
+   60
+  ],
+  [
+   "N",
+   11
+  ],
+  [
+   "E",
+   24
+  ],
+  [
+   "N",
+   13
+  ],
+  [
+   "S",
+   18
+  ],
+  [
+   "E",
+   70
+  ]
+ ],
+ "ticks": 384,
+ "clearFrame": 384,
+ "expect": {
+  "cleared": true,
+  "deaths": 0,
+  "coins": 3
+ },
+ "robustness": {
+  "solvedSafeAgainstEnemyOffsetTicks": 6,
+  "levelBestWindowTicksAt4px": 27,
+  "lateStartTicksVerified": [
+   1,
+   2
+  ]
+ },
+ "minClearancePx": 5.0,
+ "longestUnsafeStretchTicks": 348
+}

@@ -1,0 +1,102 @@
+{
+ "levelId": "corridor",
+ "level": 1,
+ "tickHz": 60,
+ "playerSpeed": 120,
+ "format": "inputs = [[dir, ticks], ...]; dir in N,S,E,W,- (- = no key). Tick k is engine frame k+1 from level start (sim.frame 0).",
+ "inputs": [
+  [
+   "N",
+   11
+  ],
+  [
+   "E",
+   38
+  ],
+  [
+   "-",
+   3
+  ],
+  [
+   "E",
+   32
+  ],
+  [
+   "-",
+   1
+  ],
+  [
+   "E",
+   4
+  ],
+  [
+   "N",
+   2
+  ],
+  [
+   "E",
+   1
+  ],
+  [
+   "N",
+   2
+  ],
+  [
+   "E",
+   1
+  ],
+  [
+   "N",
+   1
+  ],
+  [
+   "E",
+   14
+  ],
+  [
+   "N",
+   4
+  ],
+  [
+   "S",
+   35
+  ],
+  [
+   "E",
+   63
+  ],
+  [
+   "S",
+   1
+  ],
+  [
+   "E",
+   1
+  ],
+  [
+   "S",
+   4
+  ],
+  [
+   "E",
+   46
+  ]
+ ],
+ "ticks": 264,
+ "clearFrame": 264,
+ "expect": {
+  "cleared": true,
+  "deaths": 0,
+  "coins": 2
+ },
+ "robustness": {
+  "solvedSafeAgainstEnemyOffsetTicks": 6,
+  "levelBestWindowTicksAt4px": 61,
+  "lateStartTicksVerified": [
+   1,
+   2
+  ]
+ },
+ "minClearancePx": 5.0,
+ "longestUnsafeStretchTicks": 229
+}

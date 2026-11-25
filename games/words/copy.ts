@@ -28,7 +28,7 @@ export const WORDS_TWEAK_CHIPS = ["give me 8 guesses", "fewer guesses", "a 60 se
 export const wordsCopy: GameCopy = {
   remixBlurb:
     "tweaks like speed, guesses or timer apply on your next try and stay in this browser. new levels aren't live yet.",
-  askPlaceholder: "ask for a twist, e.g. make the blue shapes slower",
+  askPlaceholder: "ask for a twist, e.g. give me 8 guesses",
   pulseChip: "give me 8 guesses",
   firstRunHint: "type a word, press enter",
   hintFadeMs: 5000,
