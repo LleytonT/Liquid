@@ -158,7 +158,7 @@ export const platformerAdapter: GameAdapter = {
     return `${key} is already ${times(value)}`
   },
   refusal: refusalLine,
-  interpret(ask) {
+  interpret(ask): Record<string, number> | null {
     const text = ask.toLowerCase()
     if (/\b(level|levels|branch|branches|jump|gap|safe zone|word list|new word|multiplayer|weather|rain|snow|art)\b/.test(text)) {
       return null
