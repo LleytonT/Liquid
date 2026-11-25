@@ -361,7 +361,9 @@ export function PlatformerRenderer({
         youPulse: !window.matchMedia("(prefers-reduced-motion: reduce)").matches,
       })
       stage.dataset.you = now < youUntil ? "1" : "0"
-      stage.dataset.enemyScale = String(tweaksRef.current?.enemySpeedScale ?? 1)
+      const enemySpeedScale = tweaksRef.current?.enemySpeedScale ?? 1
+      stage.dataset.enemyScale = String(enemySpeedScale)
+      stage.dataset.enemySpeedScale = String(enemySpeedScale)
       if (!ready) {
         ready = true
         onReadyRef.current()

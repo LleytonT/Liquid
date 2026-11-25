@@ -205,7 +205,7 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
         setPaused((value) => !value)
         return
       }
-      if (event.key === "p" || event.key === "P") {
+      if (gameId !== "words" && (event.key === "p" || event.key === "P")) {
         if (typing) return
         event.preventDefault()
         event.stopPropagation()
@@ -214,7 +214,9 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
     }
     window.addEventListener("keydown", onKey, true)
     return () => window.removeEventListener("keydown", onKey, true)
-  }, [howtoOpen])
+  }, [gameId, howtoOpen])
+
+  const askingRef = useRef(false)
 
   const applyLife = useCallback(() => {
     const current = readKept(gameId)
@@ -224,13 +226,21 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
 
   const submitAsk = useCallback(
     async (text: string) => {
+      if (askingRef.current) return
+      askingRef.current = true
       setAsking(true)
       setAskNote(null)
+      const current: Record<string, number> = {}
+      for (const [key, knob] of Object.entries(branch?.snapshot.tunables ?? {})) {
+        if (typeof knob.value === "number") current[key] = knob.value
+      }
+      if (gameId === "platformer") current.enemySpeedScale ??= 1
+      if (kept && !kept.pending) Object.assign(current, kept.patch)
       try {
         const response = await fetch("/api/ask", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ gameId, ask: text }),
+          body: JSON.stringify({ gameId, ask: text, current }),
         })
         const plan = (await response.json()) as AskPlan
         if (!response.ok || !plan?.kind) {
@@ -251,10 +261,11 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
       } catch {
         setAskNote("that ask did not go through. try again.")
       } finally {
+        askingRef.current = false
         setAsking(false)
       }
     },
-    [gameId],
+    [branch, gameId, kept],
   )
 
   if (!game || !branch || !Renderer) {
@@ -304,6 +315,9 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
         {view.status ? <p className="label hidden text-[12px] font-bold sm:block">{view.status}</p> : null}
         <TooltipProvider delay={400}>
           <div className="flex shrink-0 items-center">
+            <Button type="button" variant="ghost" className="h-8 px-2 text-[14px] font-bold" data-ask-open onClick={() => setPaused(true)}>
+              ask
+            </Button>
             <Tooltip>
               <TooltipTrigger
                 render={

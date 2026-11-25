@@ -46,10 +46,11 @@ export function PauseOverlay({
           placeholder={placeholder}
           pulse={false}
           focus
+          busy={busy}
           onSubmit={onSubmit}
           onEmptyEnter={onEmptyEnter}
           onDismiss={onResume}
-          note={note}
+          blurb={note}
         />
         {busy ? <p className="text-[14px] font-medium">reading your ask...</p> : null}
         {result ? (
