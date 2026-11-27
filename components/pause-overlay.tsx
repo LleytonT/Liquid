@@ -2,7 +2,7 @@
 
 import { AskBar } from "@/components/ask-bar"
 import { Button } from "@/components/ui/button"
-import type { AskPlan } from "@/lib/ask/tweak"
+import { FALLBACK_NOTE, type AskPlan } from "@/lib/ask/tweak"
 
 export function PauseOverlay({
   chips,
@@ -72,7 +72,9 @@ export function PauseOverlay({
 }
 
 export function askResultCopy(plan: AskPlan, when: string): string {
-  if (plan.kind !== "tweak" || !plan.patch) return plan.line
-  const via = plan.source === "gateway" ? "the model planned this." : "matched from your words. the model was not used."
+  if (plan.kind !== "tweak" || !plan.patch) {
+    return plan.source === "fallback" ? `${plan.line} ${FALLBACK_NOTE}.` : plan.line
+  }
+  const via = plan.source === "gateway" ? "the model planned this." : `${FALLBACK_NOTE}.`
   return `${plan.line}. kept in this browser. starts when you ${when}. ${via}`
 }

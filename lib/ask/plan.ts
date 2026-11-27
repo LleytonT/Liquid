@@ -1,6 +1,6 @@
 import { generateText, NoObjectGeneratedError, Output } from "ai"
 import { z } from "zod"
-import { acceptModelPlan, currentValues, fallbackPlan, rulesFor, type AskPlan } from "@/lib/ask/tweak"
+import { acceptModelPlan, currentValues, fallbackPlan, rulesFor, withTrace, type AskPlan } from "@/lib/ask/tweak"
 
 /** A small structured-output model. Confirmed on the live gateway model list. */
 export const ASK_MODEL = "openai/gpt-5-mini"
@@ -149,11 +149,15 @@ export async function planAsk(
   complete: typeof askModel = askModel,
 ): Promise<AskPlan> {
   try {
-    return await complete(gameId, ask, current)
+    const plan = withTrace(gameId, await complete(gameId, ask, current), current)
+    console.info("ask trace", { source: plan.source, trace: plan.trace })
+    return plan
   } catch (error) {
     const name = error instanceof Error ? error.name : "error"
     const message = error instanceof Error ? error.message : ""
     console.error("ask gateway failed", { source: "fallback", error: name, message })
-    return { ...fallbackPlan(gameId, ask, current), gatewayError: name }
+    const fallback = withTrace(gameId, { ...fallbackPlan(gameId, ask, current), gatewayError: name }, current)
+    console.info("ask trace", { source: fallback.source, trace: fallback.trace, error: name })
+    return fallback
   }
 }

@@ -42,7 +42,7 @@ export const platformerCopy: GameCopy = {
     { id: "dodge", copy: "dodge the blue dots" },
     { id: "deaths", copy: "deaths count each time you are hit. you respawn at the start." },
     { id: "goal", copy: "grab every coin, then reach green" },
-    { id: "remix", copy: "ask for a tweak. it applies on your next try and stays in this browser." },
+    { id: "remix", copy: "pause (p) to change this game by asking. ask for a tweak. it applies on your next try and stays in this browser." },
   ],
   formatStats: (metrics) => {
     if (metrics.length === 0) return ""

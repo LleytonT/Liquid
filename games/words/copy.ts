@@ -37,7 +37,7 @@ export const wordsCopy: GameCopy = {
     return [
       { id: "guess", copy: `guess the word in ${guesses} tries` },
       { id: "states", copy: "" },
-      { id: "remix", copy: "ask for a tweak. it applies on your next try and stays in this browser." },
+      { id: "remix", copy: "pause (p) to change this game by asking. ask for a tweak. it applies on your next try and stays in this browser." },
     ]
   },
   formatStats: (metrics) => {
