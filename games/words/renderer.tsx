@@ -100,6 +100,7 @@ export function WordsRenderer({
   const wonRef = useRef(false)
   const advanceWinRef = useRef(() => {})
   const ready = useRef(false)
+  const rootRef = useRef<HTMLDivElement>(null)
   const pausedRef = useRef(paused)
 
   const commitTyping = (next: TypingState) => {
@@ -306,6 +307,10 @@ export function WordsRenderer({
   }, [scoreGuess, snapshot.shakeMs])
 
   useEffect(() => {
+    if (!paused) rootRef.current?.focus()
+  }, [paused])
+
+  useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (pausedRef.current) return
       if (event.key === "/" && !isShellControl(document.activeElement)) {
@@ -361,7 +366,14 @@ export function WordsRenderer({
   const winRow = won && poster
 
   return (
-    <div className="lw" data-guesses={guesses} style={guesses > 6 ? ({ "--lw-tile": "46px" } as CSSProperties) : undefined}>
+    <div
+      ref={rootRef}
+      className="lw"
+      data-guess-input
+      data-guesses={guesses}
+      tabIndex={0}
+      style={guesses > 6 ? ({ "--lw-tile": "46px" } as CSSProperties) : undefined}
+    >
       <p className="lw-note label" role="status">
         {note}
       </p>

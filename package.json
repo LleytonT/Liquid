@@ -8,7 +8,7 @@
     "start": "next start -p 38471",
     "lint": "eslint",
     "solve": "tsx scripts/solve.ts",
-    "test": "tsx --test games/platformer/play.test.ts games/platformer/copy.test.ts games/platformer/replay.test.ts games/platformer/fairness.test.ts games/words/typing.test.ts games/words/starters.test.ts games/words/score.test.ts lib/ask/tweak.test.ts lib/ask/model-output.test.ts lib/shell/known-branches.test.ts"
+    "test": "tsx --test games/platformer/play.test.ts games/platformer/copy.test.ts games/platformer/replay.test.ts games/platformer/fairness.test.ts games/words/typing.test.ts games/words/starters.test.ts games/words/score.test.ts lib/ask/tweak.test.ts lib/ask/model-output.test.ts lib/shell/known-branches.test.ts lib/shell/pause-key.test.ts games/platformer/debug.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

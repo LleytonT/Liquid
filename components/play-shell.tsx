@@ -17,6 +17,8 @@ import { getMuted, setMuted, subscribeMute } from "@/lib/shell/audio"
 import { BRANCH_CREATED_EVENT, BRANCH_TIP_KEY } from "@/lib/shell/branch-created"
 import type { AskHandlers, BranchRecord, HudState } from "@/lib/shell/game-module"
 import { Atmosphere } from "@/lib/shell/atmosphere"
+import { ASK_HINT, ASK_HINT_KEY, ASK_HINT_MS, askHintVisible } from "@/lib/shell/ask-hint"
+import { textFieldHasFocus } from "@/lib/shell/pause-key"
 
 function branchLabel(branch: BranchRecord): string {
   if (!branch.parentId) return "original"
@@ -112,6 +114,15 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
   const [howtoSession, setHowtoSession] = useState(0)
   const seen = useHowToSeen(gameId)
   const howtoOpen = forcedGame === gameId || !seen
+  const askHintUnseen = useSyncExternalStore(
+    (onChange) => {
+      window.addEventListener("liquid-ask-hint", onChange)
+      return () => window.removeEventListener("liquid-ask-hint", onChange)
+    },
+    () => window.localStorage.getItem(ASK_HINT_KEY) !== "1",
+    () => false,
+  )
+  const showAskHint = askHintVisible(askHintUnseen, paused, howtoOpen)
   const ready = useRef(false)
   if (hudGame !== gameId) {
     setHudGame(gameId)
@@ -194,6 +205,21 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
   }, [tipOpen])
 
   useEffect(() => {
+    if (!askHintUnseen) return
+    if (paused) {
+      window.localStorage.setItem(ASK_HINT_KEY, "1")
+      window.dispatchEvent(new Event("liquid-ask-hint"))
+      return
+    }
+    if (howtoOpen) return
+    const timer = window.setTimeout(() => {
+      window.localStorage.setItem(ASK_HINT_KEY, "1")
+      window.dispatchEvent(new Event("liquid-ask-hint"))
+    }, ASK_HINT_MS)
+    return () => window.clearTimeout(timer)
+  }, [askHintUnseen, howtoOpen, paused])
+
+  useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (howtoOpen) return
       const typing =
@@ -205,8 +231,8 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
         setPaused((value) => !value)
         return
       }
-      if (gameId !== "words" && (event.key === "p" || event.key === "P")) {
-        if (typing) return
+      if (event.key === "p" || event.key === "P") {
+        if (typing || textFieldHasFocus(event.target) || textFieldHasFocus(document.activeElement)) return
         event.preventDefault()
         event.stopPropagation()
         setPaused((value) => !value)
@@ -408,6 +434,11 @@ export function PlayShell({ gameId, branchId }: { gameId: string; branchId: stri
       {view.goal ? (
         <p data-goal className="px-4 pb-1 text-[14px] leading-5 font-medium text-foreground">
           {view.goal}
+        </p>
+      ) : null}
+      {showAskHint ? (
+        <p data-ask-hint className="px-4 pb-1 text-[14px] font-medium text-foreground/80">
+          {ASK_HINT}
         </p>
       ) : null}
       {!hintDismissed && !howtoOpen && !paused && view.hint ? (

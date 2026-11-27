@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type RefObject } from "react"
+import { useEffect, useRef, useState, useSyncExternalStore, type PointerEvent as ReactPointerEvent, type RefObject } from "react"
 import type { GameRendererProps } from "@/lib/shell/game-module"
 import {
   playChord,
@@ -13,6 +13,7 @@ import {
 import { isShellControl } from "@/lib/shell/input"
 import { planTileFlip, type FlipTile, type PlannedFlip } from "@/lib/shell/tile-flip"
 import { Button } from "@/components/ui/button"
+import { debugMode } from "@/games/platformer/debug"
 import { drawFrame, type GhostPath } from "@/games/platformer/draw"
 import { FEEL } from "@/games/platformer/feel"
 import { DT, LOCKED } from "@/games/platformer/locked"
@@ -60,6 +61,12 @@ export function PlatformerRenderer({
 }: GameRendererProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
+  const debugSpeedRef = useRef<HTMLParagraphElement>(null)
+  const debug = useSyncExternalStore(
+    () => () => {},
+    () => debugMode(window.location.search),
+    () => false,
+  )
   const onHudRef = useRef(onHud)
   const onReadyRef = useRef(onReady)
   const resetRef = useRef<() => void>(() => {})
@@ -364,6 +371,7 @@ export function PlatformerRenderer({
       const enemySpeedScale = tweaksRef.current?.enemySpeedScale ?? 1
       stage.dataset.enemyScale = String(enemySpeedScale)
       stage.dataset.enemySpeedScale = String(enemySpeedScale)
+      if (debugSpeedRef.current) debugSpeedRef.current.textContent = `enemySpeedScale ${enemySpeedScale}`
       if (!ready) {
         ready = true
         onReadyRef.current()
@@ -399,6 +407,15 @@ export function PlatformerRenderer({
       }}
     >
       <canvas ref={canvasRef} className="board" aria-hidden="true" />
+      {debug ? (
+        <p
+          ref={debugSpeedRef}
+          data-debug-speed
+          className="pointer-events-none absolute top-2 left-2 z-20 text-[12px] font-bold"
+        >
+          enemySpeedScale 1
+        </p>
+      ) : null}
       {clearCard ? (
         <div
           data-shell-control

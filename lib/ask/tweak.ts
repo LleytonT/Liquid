@@ -9,7 +9,11 @@ export type AskPlan = {
   source: AskSource
   /** Set only when the gateway call failed and the matcher was used. */
   gatewayError?: string
+  /** Old value, new value, and when it takes effect. Fallback says the model was unavailable. */
+  trace?: string[]
 }
+
+export const FALLBACK_NOTE = "the model was unavailable, used a simple match"
 
 type KnobRule = {
   min: number
@@ -216,8 +220,9 @@ export function planFromRaw(
     else changed[key] = value
   }
   if (Object.keys(changed).length === 0) {
-    const line = same.map((key) => alreadyPhrase(key, now[key] ?? clean[key]!)).join(". ")
-    return { kind: "content", line: line.endsWith(".") ? line : `${line}.`, source }
+    const detail = same.map((key) => alreadyPhrase(key, now[key] ?? clean[key]!)).join(". ")
+    const line = `nothing changed. ${detail.endsWith(".") ? detail : `${detail}.`}`
+    return { kind: "content", line, source }
   }
   const changedRequested: Record<string, number> = {}
   for (const key of Object.keys(changed)) changedRequested[key] = requested[key] ?? changed[key]!
@@ -245,13 +250,13 @@ export function fallbackPlan(gameId: string, ask: string, current?: Record<strin
     const aboutYou = /(player|square|\bme\b|\bi\b|myself)/.test(text)
     const aboutPace = /(fast|slow|speed|quick)/.test(text)
     const scale = askedScale(text)
-    if (scale !== null && (aboutBlue || (aboutPace && !aboutYou))) {
-      return planFromRaw(gameId, ask, { enemySpeedScale: scale }, "fallback", current)
-    }
-    if (aboutBlue && /(slow|slower)/.test(text)) return planFromRaw(gameId, ask, { enemySpeedScale: 0.55 }, "fallback", current)
-    if (aboutBlue && /(fast|faster)/.test(text)) return planFromRaw(gameId, ask, { enemySpeedScale: 1.4 }, "fallback", current)
     if (aboutYou && /(slow|slower)/.test(text)) return planFromRaw(gameId, ask, { playerSpeed: 100 }, "fallback", current)
     if (aboutYou && /(fast|faster)/.test(text)) return planFromRaw(gameId, ask, { playerSpeed: 140 }, "fallback", current)
+    if (!aboutYou && scale !== null) return planFromRaw(gameId, ask, { enemySpeedScale: scale }, "fallback", current)
+    if (!aboutYou && /(fast|faster)/.test(text)) return planFromRaw(gameId, ask, { enemySpeedScale: 1.4 }, "fallback", current)
+    if ((aboutBlue || aboutPace) && /(slow|slower)/.test(text)) {
+      return planFromRaw(gameId, ask, { enemySpeedScale: 0.55 }, "fallback", current)
+    }
   }
   if (!content && gameId === "words") {
     const now = currentValues(gameId, current)
@@ -278,6 +283,22 @@ export function fallbackPlan(gameId: string, ask: string, current?: Record<strin
     line: refusalLine(ask),
     source: "fallback",
   }
+}
+
+export function withTrace(gameId: string, plan: AskPlan, current?: Record<string, number>): AskPlan {
+  const now = currentValues(gameId, current)
+  const when = gameId === "words" ? "the next round" : "respawn"
+  const trace: string[] = []
+  if (plan.source === "fallback") trace.push(FALLBACK_NOTE)
+  if (plan.patch) {
+    for (const [key, value] of Object.entries(plan.patch)) {
+      trace.push(`${key} ${now[key] ?? "unset"} -> ${value}`)
+    }
+    trace.push(`takes effect on ${when}`)
+  } else {
+    trace.push(plan.line)
+  }
+  return { ...plan, trace }
 }
 
 export function acceptModelPlan(
